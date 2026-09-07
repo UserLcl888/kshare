@@ -45,7 +45,6 @@
               <div class="feature-name">{{ f.name }}</div>
               <div class="feature-desc">{{ f.desc }}</div>
             </div>
-            <span class="feature-arrow">→</span>
           </div>
         </div>
 
@@ -355,21 +354,6 @@ const features = [
   font-size: 11.5px;
   line-height: 1.55;
   color: #aab2c0;
-}
-
-.feature-arrow {
-  position: absolute;
-  right: 10px;
-  bottom: 7px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.07);
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.68);
 }
 
 .column-entry {
