@@ -28,6 +28,122 @@ export function highlightCodeBlocks(container: HTMLElement | null): void {
   })
 }
 
+/** 复制文本：优先用剪贴板 API（https/localhost），不可用时退回隐藏的 textarea + execCommand。 */
+async function copyText(text: string): Promise<boolean> {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text)
+      return true
+    } catch {
+      // 非安全上下文 / 用户拒绝授权：走下面的兜底方案
+    }
+  }
+  try {
+    const ta = document.createElement('textarea')
+    ta.value = text
+    ta.setAttribute('readonly', '')
+    ta.style.position = 'fixed'
+    ta.style.top = '-1000px'
+    ta.style.opacity = '0'
+    document.body.appendChild(ta)
+    ta.select()
+    const ok = document.execCommand('copy')
+    document.body.removeChild(ta)
+    return ok
+  } catch {
+    return false
+  }
+}
+
+/**
+ * 给已渲染正文里的每个代码块右上角加一个“复制”按钮。
+ * - 文章详情（技术 / 文章分享）、学习专题、后台与投稿预览共用 .article-body，因此一处生效；
+ * - Mermaid / flowchart 代码块会被 renderDiagrams 替换成图，这里跳过；
+ * - 需在 renderDiagrams 之后调用，否则被替换掉的代码块会留下空的包裹层。
+ */
+export function enhanceCodeBlocks(container: HTMLElement | null): void {
+  if (!container) return
+  container.querySelectorAll<HTMLPreElement>('pre').forEach((pre) => {
+    if (pre.closest('.code-block')) return // 已处理过
+    const code = pre.querySelector('code')
+    // 少数情况后端可能直接输出裸 <pre>（无 <code>），同样支持复制
+    if (/language-(mermaid|flowchart)/i.test(code?.className || pre.className || '')) return
+
+    const wrapper = document.createElement('div')
+    wrapper.className = 'code-block'
+    pre.parentNode?.insertBefore(wrapper, pre)
+    wrapper.appendChild(pre)
+
+    const btn = document.createElement('button')
+    btn.type = 'button'
+    btn.className = 'code-copy-btn'
+    btn.textContent = '复制'
+    btn.title = '复制代码'
+    btn.setAttribute('aria-label', '复制代码')
+    wrapper.appendChild(btn)
+  })
+
+  // 兜底：Mermaid 代码块被 renderDiagrams 换成图后，包裹层里可能只剩下图，需要拆掉空壳（保留图本身）
+  container.querySelectorAll<HTMLElement>('.code-block').forEach((wrap) => {
+    if (wrap.querySelector('pre')) return
+    const parent = wrap.parentNode
+    if (!parent) return
+    while (wrap.firstChild) parent.insertBefore(wrap.firstChild, wrap)
+    parent.removeChild(wrap)
+  })
+}
+
+let codeCopyInited = false
+
+/**
+ * 全局代理代码块“复制”按钮的点击（事件委托，正文重新渲染后无需重新绑定），
+ * 并用 MutationObserver 自动给正文里新出现的代码块补上按钮：
+ * 任何页面（含以后新增的页面）只要用 .article-body 渲染正文，代码块 / 文本块 / 脚本块都会自动带上复制按钮。
+ */
+export function enableCodeCopy(): void {
+  if (codeCopyInited) return
+  codeCopyInited = true
+  document.addEventListener('click', async (e: MouseEvent) => {
+    const btn = (e.target as HTMLElement).closest('.code-copy-btn') as HTMLButtonElement | null
+    if (!btn) return
+    e.preventDefault()
+    const pre = btn.closest('.code-block')?.querySelector('pre')
+    const text = (pre?.querySelector('code') ?? pre)?.textContent ?? ''
+    if (!text) return
+    const ok = await copyText(text)
+    btn.textContent = ok ? '已复制' : '复制失败'
+    btn.classList.toggle('is-copied', ok)
+    btn.classList.toggle('is-failed', !ok)
+    window.setTimeout(() => {
+      btn.textContent = '复制'
+      btn.classList.remove('is-copied', 'is-failed')
+    }, 1600)
+  })
+
+  let pending = false
+  const scan = () => {
+    pending = false
+    document.querySelectorAll<HTMLElement>('.article-body').forEach((body) => enhanceCodeBlocks(body))
+  }
+  const schedule = () => {
+    if (pending) return
+    pending = true
+    window.requestAnimationFrame(scan)
+  }
+  new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      for (const node of Array.from(m.addedNodes)) {
+        if (!(node instanceof HTMLElement)) continue
+        // 只关心正文区域的变化：正文整体插入（含整页挂载）或正文里新增了内容
+        if (node.closest('.article-body') || node.querySelector('.article-body')) {
+          schedule()
+          return
+        }
+      }
+    }
+  }).observe(document.body, { childList: true, subtree: true })
+}
+
 let mermaidInstance: unknown = null
 
 async function loadMermaid(): Promise<any> {

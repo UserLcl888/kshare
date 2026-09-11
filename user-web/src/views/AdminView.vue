@@ -165,7 +165,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, type UploadFile, type UploadUserFile } from 'element-plus'
 import { Plus, UploadFilled } from '@element-plus/icons-vue'
 import { unsavedState } from '@/utils/unsaved'
-import { highlightCodeBlocks, renderDiagrams, renderMarkdown } from '@/utils/markdown'
+import { enhanceCodeBlocks, highlightCodeBlocks, renderDiagrams, renderMarkdown } from '@/utils/markdown'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import CategoryManageDialog from '@/components/admin/CategoryManageDialog.vue'
@@ -350,6 +350,7 @@ function onPreviewOpen() {
   nextTick(async () => {
     highlightCodeBlocks(previewBody.value)
     await renderDiagrams(previewBody.value)
+    enhanceCodeBlocks(previewBody.value)
   })
 }
 

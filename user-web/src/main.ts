@@ -8,7 +8,7 @@ import App from './App.vue'
 import router from './router'
 import './styles/theme.css'
 import { enableImageLightbox } from './utils/lightbox'
-import { enableBodyLinkHandler } from './utils/markdown'
+import { enableBodyLinkHandler, enableCodeCopy } from './utils/markdown'
 import { attachScrollMemory } from './utils/scroll'
 
 const app = createApp(App)
@@ -19,5 +19,7 @@ app.mount('#app')
 enableImageLightbox()
 // 全局统一处理正文 Markdown 链接：站内 SPA、外链新标签页（当前页不变）
 enableBodyLinkHandler(router)
+// 全局代理正文代码块的“一键复制”按钮
+enableCodeCopy()
 // 记录每个页面的滚动位置，刷新后不再被强制回顶
 attachScrollMemory(router)

@@ -69,7 +69,7 @@ import AppHeader from '@/components/layout/AppHeader.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import { useAuthStore } from '@/stores/auth'
 import { getArticleDetail, getLearnArticlesApi, getLearnCategoriesApi } from '@/api/article'
-import { highlightCodeBlocks, renderDiagrams, renderMarkdown } from '@/utils/markdown'
+import { enhanceCodeBlocks, highlightCodeBlocks, renderDiagrams, renderMarkdown } from '@/utils/markdown'
 import type { ArticleDetailResp, ArticleListItem } from '@/types'
 
 const route = useRoute()
@@ -116,6 +116,7 @@ async function select(slug: string) {
     if (contentEl.value) {
       highlightCodeBlocks(contentEl.value)
       await renderDiagrams(contentEl.value)
+      enhanceCodeBlocks(contentEl.value)
     }
   } catch {
     detail.value = null

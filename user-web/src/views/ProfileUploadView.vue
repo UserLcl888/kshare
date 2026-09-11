@@ -167,7 +167,7 @@ import AppHeader from '@/components/layout/AppHeader.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import { useCategoryStore } from '@/stores/category'
 import { createUserUploadApi, deleteMyUploadApi, getMyUploadDetailApi, getMyUploadsApi } from '@/api/upload'
-import { highlightCodeBlocks, renderDiagrams, renderMarkdown } from '@/utils/markdown'
+import { enhanceCodeBlocks, highlightCodeBlocks, renderDiagrams, renderMarkdown } from '@/utils/markdown'
 import { readFileAsText } from '@/utils/file'
 import { formatDateTime } from '@/utils/format'
 import type { UserUploadDetail, UserUploadItem } from '@/types'
@@ -285,6 +285,7 @@ function onPreviewOpen() {
   nextTick(async () => {
     highlightCodeBlocks(previewBody.value)
     await renderDiagrams(previewBody.value)
+    enhanceCodeBlocks(previewBody.value)
   })
 }
 
@@ -432,6 +433,7 @@ async function openDetail(id: number) {
   await nextTick()
   highlightCodeBlocks(detailPreview.value)
   await renderDiagrams(detailPreview.value)
+  enhanceCodeBlocks(detailPreview.value)
 }
 
 onMounted(async () => {

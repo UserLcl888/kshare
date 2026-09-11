@@ -151,7 +151,7 @@ import TocPanel from '@/components/article/TocPanel.vue'
 import PrevNextNav from '@/components/article/PrevNextNav.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import { getArticleDetail, recordViewApi } from '@/api/article'
-import { highlightCodeBlocks, renderDiagrams, renderMarkdown } from '@/utils/markdown'
+import { enhanceCodeBlocks, highlightCodeBlocks, renderDiagrams, renderMarkdown } from '@/utils/markdown'
 import { applyAccessApi, getAccessStatusApi, getLockedCategoriesApi } from '@/api/access'
 import { useCategoryStore } from '@/stores/category'
 import { useAuthStore } from '@/stores/auth'
@@ -206,6 +206,7 @@ async function load() {
     if (contentEl.value) {
       highlightCodeBlocks(contentEl.value)
       await renderDiagrams(contentEl.value)
+      enhanceCodeBlocks(contentEl.value)
     }
     startViewTimer()
   } catch (e) {
