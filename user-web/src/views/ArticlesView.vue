@@ -32,7 +32,15 @@
             @click="$router.push(`/articles/${a.slug}`)"
           >
             <div class="block-cover">
-              <img v-if="a.coverUrl" :src="a.coverUrl" :alt="a.title" class="cover-img" />
+              <!-- 列表用缩略图（宽 800 的 WebP），没有缩略图时回退到大图 -->
+              <img
+                v-if="a.coverThumbUrl || a.coverUrl"
+                :src="a.coverThumbUrl || a.coverUrl"
+                :alt="a.title"
+                class="cover-img"
+                loading="lazy"
+                decoding="async"
+              />
               <div v-else class="cover-placeholder">
                 <span class="placeholder-main">知识分享</span>
                 <span class="placeholder-sub">文章分享</span>

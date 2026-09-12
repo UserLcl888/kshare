@@ -12,6 +12,8 @@ export interface ArticleSavePayload {
   difficulty: string
   isPinned?: number
   coverUrl?: string
+  /** 列表页封面缩略图（宽 800 的 WebP），由封面上传接口一并返回 */
+  coverThumbUrl?: string
   tags: string[]
   contentMd?: string
 }

@@ -16,6 +16,8 @@ public class LearnCategory {
     private String slug;
     private Integer sortOrder;
     private String coverUrl;
+    /** 封面缩略图 URL（列表页用，宽 800 的 WebP；空则回退 coverUrl） */
+    private String coverThumbUrl;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

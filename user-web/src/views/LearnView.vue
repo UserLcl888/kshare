@@ -19,7 +19,15 @@
             @click="$router.push(`/learn/${c.slug}`)"
           >
             <div class="learn-cover">
-              <img v-if="c.coverUrl" :src="c.coverUrl" :alt="c.name" class="learn-cover-img" />
+              <!-- 列表用缩略图（宽 800 的 WebP），没有缩略图时回退到大图 -->
+              <img
+                v-if="c.coverThumbUrl || c.coverUrl"
+                :src="c.coverThumbUrl || c.coverUrl"
+                :alt="c.name"
+                class="learn-cover-img"
+                loading="lazy"
+                decoding="async"
+              />
               <template v-else>
                 <span class="cover-index">{{ String(i + 1).padStart(2, '0') }}</span>
                 <span class="cover-name">{{ c.name }}</span>

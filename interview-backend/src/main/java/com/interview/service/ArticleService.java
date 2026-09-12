@@ -166,6 +166,7 @@ public class ArticleService {
                             .slug(c.getSlug())
                             .name(c.getName())
                             .coverUrl(c.getCoverUrl())
+                            .coverThumbUrl(c.getCoverThumbUrl())
                             .articleCount((long) list.size())
                             .updatedAt(max == null ? null : max.toString())
                             .build();
@@ -310,6 +311,7 @@ public class ArticleService {
                 .difficulty(a.getDifficulty())
                 .isPinned(a.getIsPinned())
                 .coverUrl(a.getCoverUrl())
+                .coverThumbUrl(a.getCoverThumbUrl())
                 .tags(tags)
                 .viewCount(a.getViewCount())
                 .updatedAt(a.getUpdatedAt())
@@ -334,6 +336,7 @@ public class ArticleService {
                 .difficulty(a.getDifficulty())
                 .isPinned(a.getIsPinned())
                 .coverUrl(a.getCoverUrl())
+                .coverThumbUrl(a.getCoverThumbUrl())
                 .tags(tagsByArticle.getOrDefault(a.getId(), List.of()))
                 .contentMd(a.getContentMd())
                 .contentHtml(a.getContentHtml())
@@ -452,12 +455,16 @@ public class ArticleService {
             article.setSlug(slug);
         }
         String oldCover = article.getCoverUrl();
+        String oldCoverThumb = article.getCoverThumbUrl();
         applySave(article, dto);
         article.setUpdatedAt(LocalDateTime.now());
         articleMapper.updateById(article);
-        // 替换封面：保存成功后删除旧图，避免孤儿对象
-        if (StringUtils.hasText(oldCover) && !oldCover.equals(article.getCoverUrl())) {
-            markdownImageService.removeObjectByUrl(oldCover);
+        // 替换封面：保存成功后删除旧图（原图与派生图一起清），避免孤儿对象
+        if (!Objects.equals(oldCover, article.getCoverUrl())) {
+            removeCoverQuietly(oldCover);
+        }
+        if (!Objects.equals(oldCoverThumb, article.getCoverThumbUrl())) {
+            removeCoverQuietly(oldCoverThumb);
         }
         tagService.replaceArticleTags(article.getId(), dto.getTags());
         categoryService.clearCache();
@@ -466,13 +473,20 @@ public class ArticleService {
         return toVO(article);
     }
 
+    /** 删除被替换掉的封面（含其派生的大图/缩略图）；空地址自动忽略。 */
+    private void removeCoverQuietly(String url) {
+        if (StringUtils.hasText(url)) {
+            markdownImageService.removeObjectByUrl(url);
+        }
+    }
+
     /**
      * 列表查询只取展示列，排除 content_md/content_html 两个 LONGTEXT，减少分页传输量。
      */
     private void trimLongTextColumns(LambdaQueryWrapper<Article> qw) {
         qw.select(Article::getId, Article::getSlug, Article::getTitle, Article::getSummary,
                 Article::getDocUrl, Article::getColumnType, Article::getCategoryId, Article::getDifficulty,
-                Article::getStatus, Article::getIsPinned, Article::getCoverUrl,
+                Article::getStatus, Article::getIsPinned, Article::getCoverUrl, Article::getCoverThumbUrl,
                 Article::getViewCount, Article::getCreatedBy, Article::getCreatedAt, Article::getUpdatedAt);
     }
 
@@ -489,6 +503,7 @@ public class ArticleService {
                 .status(article.getStatus())
                 .isPinned(article.getIsPinned())
                 .coverUrl(article.getCoverUrl())
+                .coverThumbUrl(article.getCoverThumbUrl())
                 .viewCount(article.getViewCount())
                 .createdAt(article.getCreatedAt())
                 .updatedAt(article.getUpdatedAt())
@@ -506,6 +521,7 @@ public class ArticleService {
         article.setStatus(1);
         article.setIsPinned(dto.getIsPinned() != null && dto.getIsPinned() == 1 ? 1 : 0);
         article.setCoverUrl(dto.getCoverUrl() == null ? "" : dto.getCoverUrl().trim());
+        article.setCoverThumbUrl(dto.getCoverThumbUrl() == null ? "" : dto.getCoverThumbUrl().trim());
         // 正文里的图片自动上传 MinIO 并重写 URL（未配置 MinIO 时原样返回），再渲染为消毒后的 HTML
         ContentRenderService.RenderedContent rc =
                 contentRenderService.render(dto.getContentMd() == null ? "" : dto.getContentMd(), "article");

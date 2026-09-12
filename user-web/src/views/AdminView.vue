@@ -211,6 +211,7 @@ const form = reactive({
   difficulty: 'MEDIUM',
   isPinned: 0,
   coverUrl: '',
+  coverThumbUrl: '',
   tagsText: '',
   content: '',
 })
@@ -247,6 +248,7 @@ function snapshotForm(): string {
     difficulty: form.difficulty,
     isPinned: form.isPinned,
     coverUrl: form.coverUrl,
+    coverThumbUrl: form.coverThumbUrl,
     tagsText: form.tagsText,
     content: form.content
   })
@@ -270,6 +272,7 @@ function draftSnapshot(): string {
     difficulty: form.difficulty,
     isPinned: form.isPinned,
     coverUrl: form.coverUrl,
+    coverThumbUrl: form.coverThumbUrl,
     tagsText: form.tagsText,
     content: form.content,
     pasteImages: { ...pasteImages }
@@ -288,6 +291,7 @@ function draftRestore(raw: string) {
   if (s.difficulty === 'EASY' || s.difficulty === 'MEDIUM' || s.difficulty === 'HARD') form.difficulty = s.difficulty
   if (s.isPinned === 1 || s.isPinned === 0) form.isPinned = s.isPinned
   if (typeof s.coverUrl === 'string') form.coverUrl = s.coverUrl
+  if (typeof s.coverThumbUrl === 'string') form.coverThumbUrl = s.coverThumbUrl
   if (typeof s.tagsText === 'string') form.tagsText = s.tagsText
   if (typeof s.content === 'string') form.content = s.content
   const paste = s.pasteImages
@@ -338,6 +342,31 @@ async function onCoverUpload(options: { file: File; onSuccess: (res: unknown) =>
 
 function removeCover() {
   form.coverUrl = ''
+  form.coverThumbUrl = ''
+}
+
+/**
+ * 解析封面为可保存的两个地址：
+ * - 上传的是本地预览（base64）时，保存时才真正上传，拿到「大图 + 列表缩略图」两个地址；
+ * - 手工粘贴的外链没有配套缩略图，此时清空缩略图，列表页会自动回退用大图。
+ */
+async function resolveCover(): Promise<{ coverUrl?: string; coverThumbUrl?: string }> {
+  let coverUrl = form.coverUrl.trim() || undefined
+  let coverThumbUrl = form.coverThumbUrl.trim() || undefined
+  if (coverUrl && coverUrl.startsWith('data:')) {
+    const uploaded = await uploadCoverApi(dataUrlToFile(coverUrl, 'cover.png'))
+    coverUrl = uploaded.url
+    coverThumbUrl = uploaded.thumbUrl || uploaded.url
+  }
+  if (!coverUrl) return {}
+  if (coverThumbUrl && !isSameCoverPair(coverUrl, coverThumbUrl)) coverThumbUrl = undefined
+  return { coverUrl, coverThumbUrl }
+}
+
+/** 判断两个地址是否同一张图的派生图（xxx.w1600.webp 与 xxx.w800.webp 视为配套）。 */
+function isSameCoverPair(coverUrl: string, thumbUrl: string): boolean {
+  if (coverUrl === thumbUrl) return true
+  return coverUrl.replace(/\.w\d+\.webp$/i, '') === thumbUrl.replace(/\.w\d+\.webp$/i, '')
 }
 
 watch(isDirty, (v) => {
@@ -477,6 +506,7 @@ async function loadForEdit() {
     form.difficulty = a.difficulty
     form.isPinned = a.isPinned === 1 ? 1 : 0
     form.coverUrl = a.coverUrl || ''
+    form.coverThumbUrl = a.coverThumbUrl || ''
     form.tagsText = a.tags.join(', ')
     form.content = a.contentMd || htmlToText(a.contentHtml)
     initialSnapshot.value = snapshotForm()
@@ -500,10 +530,7 @@ async function submit() {
   }
   saving.value = true
   try {
-    let coverUrl = form.coverUrl.trim() || undefined
-    if (coverUrl && coverUrl.startsWith('data:')) {
-      coverUrl = (await uploadCoverApi(dataUrlToFile(coverUrl, 'cover.png'))).url
-    }
+    const { coverUrl, coverThumbUrl } = await resolveCover()
     const tags = form.tagsText
       .split(/[,，]/)
       .map((t) => t.trim())
@@ -519,6 +546,7 @@ async function submit() {
       difficulty: form.difficulty,
       isPinned: form.isPinned,
       coverUrl,
+      coverThumbUrl,
       tags,
       contentMd: resolvePasteImages(form.content)
     }

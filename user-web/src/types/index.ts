@@ -19,6 +19,8 @@ export interface ArticleListItem {
   difficulty: string
   isPinned?: number
   coverUrl?: string
+  /** 列表页封面缩略图（宽 800 的 WebP），为空时回退 coverUrl */
+  coverThumbUrl?: string
   tags: string[]
   viewCount: number
   updatedAt: string
@@ -44,6 +46,8 @@ export interface ArticleDetail {
   difficulty: string
   isPinned?: number
   coverUrl?: string
+  /** 列表页封面缩略图（宽 800 的 WebP），为空时回退 coverUrl */
+  coverThumbUrl?: string
   tags: string[]
   contentMd: string
   contentHtml: string
@@ -63,6 +67,8 @@ export interface LearnCategory {
   slug: string
   name: string
   coverUrl: string
+  /** 列表页封面缩略图（宽 800 的 WebP），为空时回退 coverUrl */
+  coverThumbUrl?: string
   articleCount: number
   updatedAt: string | null
 }

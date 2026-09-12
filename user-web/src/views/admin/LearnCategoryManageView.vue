@@ -54,7 +54,7 @@
               <img v-if="form.coverUrl" :src="form.coverUrl" class="cover-preview" alt="封面预览" />
               <div v-else class="cover-placeholder">上传封面</div>
             </el-upload>
-            <el-button v-if="form.coverUrl" size="small" type="danger" plain @click="form.coverUrl = ''">移除</el-button>
+            <el-button v-if="form.coverUrl" size="small" type="danger" plain @click="clearCover">移除</el-button>
           </div>
           <div class="cover-size-tip">最大 10MB，建议 16:9</div>
         </el-form-item>
@@ -89,7 +89,7 @@ const visible = ref(false)
 const saving = ref(false)
 const isEdit = ref(false)
 const editId = ref(0)
-const form = reactive({ name: '', slug: '', sortOrder: 0, coverUrl: '' })
+const form = reactive({ name: '', slug: '', sortOrder: 0, coverUrl: '', coverThumbUrl: '' })
 
 async function load() {
   loading.value = true
@@ -146,6 +146,7 @@ function openCreate() {
   form.slug = ''
   form.sortOrder = 0
   form.coverUrl = ''
+  form.coverThumbUrl = ''
   visible.value = true
 }
 
@@ -156,17 +157,48 @@ function openEdit(row: LearnCategory) {
   form.slug = row.slug
   form.sortOrder = row.sortOrder || 0
   form.coverUrl = row.coverUrl || ''
+  form.coverThumbUrl = row.coverThumbUrl || ''
   visible.value = true
 }
 
 async function onCoverUpload(options: { file: File; onSuccess: (res: unknown) => void; onError: (err: Error) => void }) {
   try {
     form.coverUrl = await readFileAsDataUrl(options.file)
+    form.coverThumbUrl = ''
     options.onSuccess({ url: form.coverUrl })
     ElMessage.success('封面已选择，保存时上传')
   } catch (e) {
     options.onError(e as Error)
   }
+}
+
+function clearCover() {
+  form.coverUrl = ''
+  form.coverThumbUrl = ''
+}
+
+/**
+ * 解析封面为可保存的两个地址：
+ * - 本地预览（base64）时在保存时才真正上传，拿到「大图 + 列表缩略图」两个地址；
+ * - 手工粘贴的外链没有配套缩略图，此时清空缩略图，列表页自动回退用大图。
+ */
+async function resolveCover(): Promise<{ coverUrl?: string; coverThumbUrl?: string }> {
+  let coverUrl = form.coverUrl.trim() || undefined
+  let coverThumbUrl = form.coverThumbUrl.trim() || undefined
+  if (coverUrl && coverUrl.startsWith('data:')) {
+    const uploaded = await uploadCoverApi(dataUrlToFile(coverUrl, 'cover.png'))
+    coverUrl = uploaded.url
+    coverThumbUrl = uploaded.thumbUrl || uploaded.url
+  }
+  if (!coverUrl) return {}
+  if (coverThumbUrl && !isSameCoverPair(coverUrl, coverThumbUrl)) coverThumbUrl = undefined
+  return { coverUrl, coverThumbUrl }
+}
+
+/** 判断两个地址是否同一张图的派生图（xxx.w1600.webp 与 xxx.w800.webp 视为配套）。 */
+function isSameCoverPair(coverUrl: string, thumbUrl: string): boolean {
+  if (coverUrl === thumbUrl) return true
+  return coverUrl.replace(/\.w\d+\.webp$/i, '') === thumbUrl.replace(/\.w\d+\.webp$/i, '')
 }
 
 function beforeCoverUpload(file: File): boolean {
@@ -191,15 +223,13 @@ async function submit() {
   }
   saving.value = true
   try {
-    let coverUrl = form.coverUrl.trim() || undefined
-    if (coverUrl && coverUrl.startsWith('data:')) {
-      coverUrl = (await uploadCoverApi(dataUrlToFile(coverUrl, 'cover.png'))).url
-    }
+    const { coverUrl, coverThumbUrl } = await resolveCover()
     if (isEdit.value) {
       await updateAdminLearnCategoryApi(editId.value, {
         name: form.name.trim(),
         slug: form.slug.trim() || undefined,
-        coverUrl
+        coverUrl,
+        coverThumbUrl
       })
       ElMessage.success('保存成功')
     } else {
@@ -207,7 +237,8 @@ async function submit() {
         name: form.name.trim(),
         slug: form.slug.trim() || undefined,
         sortOrder: form.sortOrder,
-        coverUrl
+        coverUrl,
+        coverThumbUrl
       })
       ElMessage.success('创建成功')
     }

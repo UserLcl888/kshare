@@ -62,6 +62,7 @@ public class VOs {
         private Integer status;
         private Integer isPinned;
         private String coverUrl;
+        private String coverThumbUrl;
         private Long viewCount;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
@@ -95,6 +96,7 @@ public class VOs {
         private String difficulty;
         private Integer isPinned;
         private String coverUrl;
+        private String coverThumbUrl;
         private List<String> tags;
         private Long viewCount;
         private LocalDateTime updatedAt;
@@ -134,6 +136,7 @@ public class VOs {
         private String difficulty;
         private Integer isPinned;
         private String coverUrl;
+        private String coverThumbUrl;
         private List<String> tags;
         private String contentMd;
         private String contentHtml;
@@ -156,6 +159,7 @@ public class VOs {
         private String slug;
         private String name;
         private String coverUrl;
+        private String coverThumbUrl;
         private Long articleCount;
         private String updatedAt;
     }

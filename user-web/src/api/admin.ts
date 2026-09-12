@@ -76,13 +76,14 @@ export async function createAdminLearnCategoryApi(payload: {
   slug?: string
   sortOrder?: number
   coverUrl?: string
+  coverThumbUrl?: string
 }): Promise<LearnCategory> {
   return request.post('/admin/learn-categories', payload)
 }
 
 export async function updateAdminLearnCategoryApi(
   id: number,
-  payload: { name: string; slug?: string; sortOrder?: number; coverUrl?: string }
+  payload: { name: string; slug?: string; sortOrder?: number; coverUrl?: string; coverThumbUrl?: string }
 ): Promise<LearnCategory> {
   return request.put(`/admin/learn-categories/${id}`, payload)
 }
@@ -95,8 +96,11 @@ export async function deleteAdminLearnCategoryApi(id: number): Promise<void> {
   return request.delete(`/admin/learn-categories/${id}`)
 }
 
-/** 管理员上传专题封面图，返回可直接存入 coverUrl 的图片地址 */
-export async function uploadCoverApi(file: File): Promise<{ url: string }> {
+/**
+ * 管理员上传封面图，返回两个地址：
+ * url = 详情页大图（宽 1600 的 WebP），thumbUrl = 列表页缩略图（宽 800 的 WebP）。
+ */
+export async function uploadCoverApi(file: File): Promise<{ url: string; thumbUrl?: string }> {
   const form = new FormData()
   form.append('file', file)
   return request.post('/admin/upload/cover', form, {

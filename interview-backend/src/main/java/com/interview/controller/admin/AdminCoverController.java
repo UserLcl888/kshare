@@ -60,11 +60,11 @@ public class AdminCoverController {
         if (!ALLOWED_EXT.contains(ext)) {
             throw new BizException(ErrorCode.PARAM_ERROR, "仅支持 png/jpg/jpeg/webp 格式");
         }
-        // MinIO 已配置：封面直接存 MinIO，返回公开 URL
+        // MinIO 已配置：封面直接存 MinIO，同时返回详情页大图与列表页缩略图两个地址
         if (markdownImageService.enabled()) {
             try {
-                String url = markdownImageService.storeImage(file.getBytes(), ext, "cover");
-                return Result.ok(Map.of("url", url));
+                MarkdownImageService.StoredCover stored = markdownImageService.storeCover(file.getBytes(), ext);
+                return Result.ok(Map.of("url", stored.url(), "thumbUrl", stored.thumbUrl()));
             } catch (IOException e) {
                 throw new BizException(ErrorCode.SERVER_ERROR, "封面读取失败，请重试");
             }
@@ -80,6 +80,8 @@ public class AdminCoverController {
             log.error("封面本地保存失败, uploadDir={}, day={}", uploadDir, day, e);
             throw new BizException(ErrorCode.SERVER_ERROR, "封面上传失败，请重试");
         }
-        return Result.ok(Map.of("url", "/images/covers/" + day + "/" + fileName));
+        // 本地降级存储不做派生图，缩略图地址与大图一致
+        String fallbackUrl = "/images/covers/" + day + "/" + fileName;
+        return Result.ok(Map.of("url", fallbackUrl, "thumbUrl", fallbackUrl));
     }
 }

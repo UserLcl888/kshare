@@ -21,7 +21,9 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -51,8 +53,14 @@ public class MarkdownImageService {
             "jpeg", "image/jpeg",
             "gif", "image/gif",
             "webp", "image/webp");
+    /** 压缩图统一格式与浏览器强缓存头（对象名带 UUID，内容不会被改写） */
+    private static final String WEBP_CONTENT_TYPE = "image/webp";
+    private static final String CACHE_IMMUTABLE = "public, max-age=31536000, immutable";
+    /** 轮播图沿用固定文件名（可能被人工替换），不用一年强缓存 */
+    private static final String CACHE_BANNER = "public, max-age=604800";
 
     private final MinioProperties props;
+    private final ImageProcessService imageProcessService;
 
     @Autowired(required = false)
     private MinioClient minioClient;
@@ -122,35 +130,123 @@ public class MarkdownImageService {
         }
     }
 
-    /** 单张图片上传（手动插图/封面上传接口复用）。未配置 MinIO 时抛业务异常。 */
+    /**
+     * 封面类图片的存储结果：大图（详情页）+ 缩略图（列表页）。
+     * 两者地址都基于同一张原图派生，原图一并保留在对象存储里。
+     */
+    public record StoredCover(String url, String thumbUrl) {
+    }
+
+    /**
+     * 单张图片上传（正文插图、头像、轮播图等复用）。未配置 MinIO 时抛业务异常。
+     *
+     * <p>原图按原名保存一份，同时按用途压出一张加宽 WebP 并返回它的地址：
+     * 正文插图取 1600、头像取 256、轮播图取 1920。压缩不可用（gif / 编码失败）时回退原图地址。
+     */
     public String storeImage(byte[] data, String ext, String dir) {
+        String normDir = validate(data, ext, dir);
+        String object = objectKey(normDir, normalizeExt(ext));
+        try {
+            // 原图留底：方便日后重新导出更大尺寸
+            putObject(object, data, CONTENT_TYPE.getOrDefault(normalizeExt(ext), "application/octet-stream"));
+            byte[] compressed = compress(data, normalizeExt(ext), widthFor(normDir));
+            if (compressed == null) {
+                return publicUrl(object);
+            }
+            String compressedKey = derivedKey(object, widthFor(normDir));
+            putObject(compressedKey, compressed, WEBP_CONTENT_TYPE);
+            return publicUrl(compressedKey);
+        } catch (BizException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BizException(ErrorCode.SERVER_ERROR, "图片上传失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 封面上传（文章封面 / 学习分类封面）：原图留底 + 大图（宽 1600）+ 缩略图（宽 800）。
+     * 列表页用缩略图、详情页用大图，避免列表页一次性拉几十 MB 的原图。
+     */
+    public StoredCover storeCover(byte[] data, String ext) {
+        String normDir = validate(data, ext, "cover");
+        String normExt = normalizeExt(ext);
+        String object = objectKey(normDir, normExt);
+        try {
+            putObject(object, data, CONTENT_TYPE.getOrDefault(normExt, "application/octet-stream"));
+
+            byte[] large = compress(data, normExt, ImageProcessService.WIDTH_LARGE);
+            if (large == null) {
+                return new StoredCover(publicUrl(object), publicUrl(object));
+            }
+            String largeKey = derivedKey(object, ImageProcessService.WIDTH_LARGE);
+            putObject(largeKey, large, WEBP_CONTENT_TYPE);
+
+            byte[] thumb = compress(data, normExt, ImageProcessService.WIDTH_THUMB);
+            if (thumb == null) {
+                return new StoredCover(publicUrl(largeKey), publicUrl(largeKey));
+            }
+            String thumbKey = derivedKey(object, ImageProcessService.WIDTH_THUMB);
+            putObject(thumbKey, thumb, WEBP_CONTENT_TYPE);
+            return new StoredCover(publicUrl(largeKey), publicUrl(thumbKey));
+        } catch (BizException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BizException(ErrorCode.SERVER_ERROR, "图片上传失败：" + e.getMessage());
+        }
+    }
+
+    /** 校验上传参数，返回归一化后的目录名。 */
+    private String validate(byte[] data, String ext, String dir) {
         if (minioClient == null || !StringUtils.hasText(props.getPublicBaseUrl())) {
             throw new BizException(ErrorCode.SERVER_ERROR, "图片存储未配置，请联系管理员");
-        }
-        String normDir = StringUtils.hasText(dir) ? dir.trim() : "image";
-        if (!ALLOWED_DIR.contains(normDir)) {
-            normDir = "image";
         }
         String normExt = normalizeExt(ext);
         if (!ALLOWED_EXT.contains(normExt)) {
             throw new BizException(ErrorCode.PARAM_ERROR, "仅支持 png/jpg/gif/webp 图片");
         }
-        if (data.length == 0 || data.length > props.getImageMaxSize()) {
+        if (data == null || data.length == 0 || data.length > props.getImageMaxSize()) {
             throw new BizException(ErrorCode.PARAM_ERROR, "图片不能为空且不能超过 "
                     + (props.getImageMaxSize() / 1024 / 1024) + "MB");
         }
-        try {
-            String object = objectKey(normDir, normExt);
-            minioClient.putObject(PutObjectArgs.builder()
-                    .bucket(props.getBucket())
-                    .object(object)
-                    .stream(new ByteArrayInputStream(data), data.length, -1)
-                    .contentType(CONTENT_TYPE.getOrDefault(normExt, "application/octet-stream"))
-                    .build());
-            return props.getPublicBaseUrl() + "/" + props.getBucket() + "/" + object;
-        } catch (Exception e) {
-            throw new BizException(ErrorCode.SERVER_ERROR, "图片上传失败：" + e.getMessage());
+        String normDir = StringUtils.hasText(dir) ? dir.trim() : "image";
+        return ALLOWED_DIR.contains(normDir) ? normDir : "image";
+    }
+
+    /** 压缩为 WebP；gif（可能带动画）或编码失败时返回 null。 */
+    private byte[] compress(byte[] data, String normExt, int width) {
+        if (!imageProcessService.compressible(normExt)) {
+            return null;
         }
+        return imageProcessService.toWebp(data, width);
+    }
+
+    /** 各用途的目标宽度。 */
+    private int widthFor(String dir) {
+        if ("avatar".equals(dir)) {
+            return ImageProcessService.WIDTH_AVATAR;
+        }
+        if ("banner".equals(dir)) {
+            return ImageProcessService.WIDTH_BANNER;
+        }
+        return ImageProcessService.WIDTH_LARGE;
+    }
+
+    /** 上传对象：图片统一带长缓存头，让浏览器和 CDN 能直接命中缓存。 */
+    private void putObject(String object, byte[] data, String contentType) throws Exception {
+        Map<String, String> headers = Map.of(
+                "Content-Type", contentType,
+                "Cache-Control", object.startsWith("banner/") ? CACHE_BANNER : CACHE_IMMUTABLE);
+        minioClient.putObject(PutObjectArgs.builder()
+                .bucket(props.getBucket())
+                .object(object)
+                .stream(new ByteArrayInputStream(data), data.length, -1)
+                .contentType(contentType)
+                .headers(headers)
+                .build());
+    }
+
+    private String publicUrl(String object) {
+        return props.getPublicBaseUrl() + "/" + props.getBucket() + "/" + object;
     }
 
     /** 当前是否已启用 MinIO 存储。 */
@@ -163,25 +259,47 @@ public class MarkdownImageService {
         return url.startsWith(prefix);
     }
 
-    /** 删除某个 MinIO 对象（按完整 URL）。非 MinIO URL 或删除失败均忽略，供替换头像等清理用。 */
+    /**
+     * 删除某个 MinIO 对象（按完整 URL）。非 MinIO URL 或删除失败均忽略，供替换封面/头像等清理用。
+     * 一张原图会派生出多个尺寸的 WebP，这里按基名一并清掉，避免留下孤儿对象。
+     */
     public void removeObjectByUrl(String url) {
-        if (!StringUtils.hasText(url) || !isMinioUrl(url)) {
+        if (!StringUtils.hasText(url) || !isMinioUrl(url) || minioClient == null) {
             return;
         }
-        try {
-            if (minioClient == null) {
-                return;
-            }
-            String prefix = props.getPublicBaseUrl() + "/" + props.getBucket() + "/";
-            String object = url.substring(prefix.length());
-            minioClient.removeObject(RemoveObjectArgs.builder()
-                    .bucket(props.getBucket())
-                    .object(object)
-                    .build());
-            log.info("已移除 MinIO 对象: {}", object);
-        } catch (Exception e) {
-            log.warn("删除 MinIO 对象失败 url={}", url, e);
+        String prefix = props.getPublicBaseUrl() + "/" + props.getBucket() + "/";
+        String object = url.substring(prefix.length());
+        String base = baseKeyOf(object);
+        List<String> keys = new ArrayList<>(List.of(
+                object,
+                base + ".w" + ImageProcessService.WIDTH_LARGE + ".webp",
+                base + ".w" + ImageProcessService.WIDTH_THUMB + ".webp",
+                base + ".w" + ImageProcessService.WIDTH_BANNER + ".webp",
+                base + ".w" + ImageProcessService.WIDTH_AVATAR + ".webp"));
+        for (String ext : List.of("png", "jpg", "jpeg", "webp", "gif")) {
+            keys.add(base + "." + ext);
         }
+        for (String key : keys) {
+            try {
+                minioClient.removeObject(RemoveObjectArgs.builder()
+                        .bucket(props.getBucket())
+                        .object(key)
+                        .build());
+            } catch (Exception e) {
+                log.warn("删除 MinIO 对象失败 key={}", key, e);
+            }
+        }
+        log.info("已移除 MinIO 图片及其派生图: {}", base);
+    }
+
+    /** 派生对象名：cover/2026/08/31/xxx.png → cover/2026/08/31/xxx.w1600.webp */
+    private String derivedKey(String object, int width) {
+        return baseKeyOf(object) + ".w" + width + ".webp";
+    }
+
+    /** 去掉派生后缀与扩展名，得到对象基名（dir/yyyy/MM/dd/uuid）。 */
+    private String baseKeyOf(String object) {
+        return object.replaceAll("\\.w\\d+\\.webp$", "").replaceAll("\\.[A-Za-z0-9]+$", "");
     }
 
     private byte[] download(String url) {

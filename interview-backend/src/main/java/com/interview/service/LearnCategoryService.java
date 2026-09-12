@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -46,6 +47,7 @@ public class LearnCategoryService {
         category.setSlug(slug);
         category.setSortOrder(dto.getSortOrder() == null ? 0 : dto.getSortOrder());
         category.setCoverUrl(dto.getCoverUrl());
+        category.setCoverThumbUrl(dto.getCoverThumbUrl());
         learnCategoryMapper.insert(category);
         adminLogService.write(AdminLogAction.CATEGORY_CREATE, category.getId(), "新增学习分类：" + name);
         return toVO(category);
@@ -55,6 +57,7 @@ public class LearnCategoryService {
     public VOs.LearnCategoryVO update(Long id, Requests.LearnCategorySaveDTO dto) {
         LearnCategory category = get(id);
         String oldCover = category.getCoverUrl();
+        String oldCoverThumb = category.getCoverThumbUrl();
         category.setName(dto.getName().trim());
         if (StringUtils.hasText(dto.getSlug())) {
             String slug = dto.getSlug().trim();
@@ -69,10 +72,14 @@ public class LearnCategoryService {
             category.setSortOrder(dto.getSortOrder());
         }
         category.setCoverUrl(dto.getCoverUrl());
+        category.setCoverThumbUrl(dto.getCoverThumbUrl());
         learnCategoryMapper.updateById(category);
-        // 替换封面：保存成功后删除旧图
-        if (StringUtils.hasText(oldCover) && !oldCover.equals(category.getCoverUrl())) {
-            markdownImageService.removeObjectByUrl(oldCover);
+        // 替换封面：保存成功后删除旧图（原图与派生图一起清）
+        if (!Objects.equals(oldCover, category.getCoverUrl())) {
+            removeCoverQuietly(oldCover);
+        }
+        if (!Objects.equals(oldCoverThumb, category.getCoverThumbUrl())) {
+            removeCoverQuietly(oldCoverThumb);
         }
         adminLogService.write(AdminLogAction.CATEGORY_UPDATE, id, "编辑学习分类：" + category.getName());
         return toVO(category);
@@ -121,7 +128,15 @@ public class LearnCategoryService {
                 .slug(category.getSlug())
                 .name(category.getName())
                 .coverUrl(category.getCoverUrl())
+                .coverThumbUrl(category.getCoverThumbUrl())
                 .articleCount(0L)
                 .build();
+    }
+
+    /** 删除被替换掉的封面（含其派生的大图/缩略图）；空地址自动忽略。 */
+    private void removeCoverQuietly(String url) {
+        if (StringUtils.hasText(url)) {
+            markdownImageService.removeObjectByUrl(url);
+        }
     }
 }

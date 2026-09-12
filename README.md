@@ -160,6 +160,22 @@ cd user-web && npm run build
 - **限制**：仅 `png/jpg/jpeg/gif/webp`，单张 ≤ 5MB，文件名 UUID
 - **降级**：未配置 MinIO 时服务正常启动，封面等回退到本地 `uploads/` 目录
 
+### 图片压缩与多尺寸（WebP）
+
+上传的图片会由 `ImageProcessService` 统一压缩为 WebP（质量 0.85，只缩不放），原图一律保留做备份：
+
+| 用途 | 对象名 | 规格 | 展示位置 |
+| --- | --- | --- | --- |
+| 封面-大图 | `cover/…/uuid.w1600.webp` | 宽 ≤1600 | 文章 / 学习专题详情页顶部 |
+| 封面-缩略图 | `cover/…/uuid.w800.webp` | 宽 ≤800 | 列表卡片（`/articles`、`/learn`） |
+| 正文插图 | `article/…/uuid.w1600.webp` | 宽 ≤1600 | 正文内嵌图片 |
+| 头像 | `avatar/…/uuid.w256.webp` | 宽 ≤256 | 顶部导航 / 个人中心 |
+
+- 数据库字段：`article.cover_url`（大图）+ `article.cover_thumb_url`（缩略图），`learn_category` 同名字段；列表接口返回 `coverThumbUrl`，前端列表优先用它，为空时回退 `coverUrl`
+- 缓存：图片对象统一带 `Cache-Control: public, max-age=31536000, immutable`（轮播图 `banner/` 为 7 天，便于替换），浏览器与 CDN 可直接命中缓存
+- gif（可能带动画）不做转换，保持原图；WebP 编码不可用时自动回退原图，不影响上传
+- 封面替换时会连同派生图一起清理，不留孤儿对象
+
 配置项在 `application*.yml` 的 `minio.*` 与前端 `user-web/src/config/site.ts`（`MINIO_PUBLIC_BASE` / `MINIO_BUCKET`）。
 
 ## 配置说明

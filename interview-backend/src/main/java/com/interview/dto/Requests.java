@@ -85,6 +85,8 @@ public class Requests {
         private Integer isPinned = 0;
         /** 专题分享专属：封面图 URL */
         private String coverUrl;
+        /** 专题分享专属：封面缩略图 URL（列表页用，由封面上传接口一并返回） */
+        private String coverThumbUrl;
         /** 学习专题专属：学习分类ID */
         private Long learnCategoryId;
         /** 技术问题专栏必填；专题分享可不填（默认 0） */
@@ -160,6 +162,8 @@ public class Requests {
         private String slug;
         private Integer sortOrder = 0;
         private String coverUrl;
+        /** 封面缩略图 URL（列表页用，由封面上传接口一并返回） */
+        private String coverThumbUrl;
     }
 
     @Data
