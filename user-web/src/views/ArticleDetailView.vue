@@ -1,6 +1,5 @@
 <template>
   <div class="page">
-    <AppHeader />
     <div class="page-body">
       <template v-if="!isTopicArticle">
         <CategorySidebar :active-category-slug="categorySlug" :active-article-slug="activeSlug" />
@@ -134,7 +133,6 @@
         </template>
       </el-dialog>
     </div>
-    <AppFooter />
   </div>
 </template>
 
@@ -143,8 +141,6 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { EditPen, Lock } from '@element-plus/icons-vue'
-import AppHeader from '@/components/layout/AppHeader.vue'
-import AppFooter from '@/components/layout/AppFooter.vue'
 import CategorySidebar from '@/components/layout/CategorySidebar.vue'
 import DifficultyTag from '@/components/article/DifficultyTag.vue'
 import TocPanel from '@/components/article/TocPanel.vue'
@@ -351,7 +347,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .page {
-  min-height: 100vh;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
 }

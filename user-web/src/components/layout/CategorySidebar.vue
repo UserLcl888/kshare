@@ -373,7 +373,7 @@ watch(
   align-items: center;
   justify-content: space-between;
   font-size: 15px;
-  color: #e9b862;
+  color: var(--app-title-accent);
 }
 
 .category-list,
@@ -435,7 +435,7 @@ watch(
   border-radius: 6px;
   font-size: 13px;
   font-weight: 600;
-  color: #dfaa40;
+  color: var(--app-title-accent);
   transition: all 0.15s;
 }
 
@@ -445,14 +445,14 @@ watch(
 
 .sub-title.active {
   background: var(--app-accent);
-  color: #141a26;
+  color: var(--app-on-accent);
 }
 
 .collapse-btn {
   border: none;
   background: transparent;
   cursor: pointer;
-  color: #dfaa40;
+  color: var(--app-title-accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -484,7 +484,7 @@ watch(
 
 .question-item.active {
   background: var(--app-accent);
-  color: #141a26;
+  color: var(--app-on-accent);
   font-weight: 600;
 }
 

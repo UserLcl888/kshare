@@ -11,7 +11,7 @@
           :key="item.path"
           :to="item.path"
           class="admin-nav-item"
-          active-class="active"
+          :class="{ active: item.path === activeMenuPath }"
         >
           {{ item.label }}
         </router-link>
@@ -80,6 +80,19 @@ const labelMap: Record<string, string> = {
 }
 
 const currentLabel = computed(() => labelMap[String(route.name)] || '管理后台')
+
+/** 高亮的菜单项：编辑/新增内容时也对应到菜单上，避免进入编辑页后左侧一个都不亮 */
+const activeMenuPath = computed(() => {
+  switch (String(route.name)) {
+    case 'admin': // 添加内容（从右上角菜单进入）
+      return '/admin/articles/create'
+    case 'admin-edit': // 编辑内容（从前台文章页 / 学习页进入）
+    case 'admin-article-edit':
+      return '/admin/articles'
+    default:
+      return route.path
+  }
+})
 
 async function logout() {
   await auth.logout()

@@ -1,6 +1,5 @@
 <template>
   <div class="learn-page">
-    <AppHeader />
     <div class="learn-body">
       <main class="learn-main">
         <header class="learn-head">
@@ -51,15 +50,12 @@
         </div>
       </main>
     </div>
-    <AppFooter />
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { Clock, CollectionTag } from '@element-plus/icons-vue'
-import AppHeader from '@/components/layout/AppHeader.vue'
-import AppFooter from '@/components/layout/AppFooter.vue'
 import { getLearnCategoriesApi } from '@/api/article'
 import type { LearnCategory } from '@/types'
 
@@ -85,7 +81,7 @@ onMounted(async () => {
 
 <style scoped>
 .learn-page {
-  min-height: 100vh;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
 }

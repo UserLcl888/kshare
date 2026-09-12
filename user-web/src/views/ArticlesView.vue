@@ -1,6 +1,5 @@
 <template>
   <div class="topic-page">
-    <AppHeader />
     <div class="topic-body">
       <main class="topic-main">
         <header class="topic-head">
@@ -81,15 +80,12 @@
         </div>
       </main>
     </div>
-    <AppFooter />
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { Clock, CollectionTag, Search, View } from '@element-plus/icons-vue'
-import AppHeader from '@/components/layout/AppHeader.vue'
-import AppFooter from '@/components/layout/AppFooter.vue'
 import { getTopicArticlesApi } from '@/api/article'
 import type { ArticleListItem } from '@/types'
 import { formatDateTime } from '@/utils/format'
@@ -137,7 +133,7 @@ onMounted(load)
 <style scoped>
 .topic-page {
   position: relative;
-  min-height: 100vh;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
 }

@@ -55,6 +55,29 @@ async function copyText(text: string): Promise<boolean> {
   }
 }
 
+/* 复制按钮图标：线性风格，跟随主题色（fill:none + currentColor） */
+const ICON_COPY =
+  '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" ' +
+  'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<rect x="9" y="9" width="12" height="12" rx="2.5"/>' +
+  '<path d="M5.5 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v.5"/></svg>'
+
+const ICON_COPIED =
+  '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" ' +
+  'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<path d="M20 6 9 17l-5-5"/></svg>'
+
+/** 代码块右上角的复制按钮：常驻显示，图标常显、悬停有文字提示。 */
+function createCopyButton(): HTMLButtonElement {
+  const copyBtn = document.createElement('button')
+  copyBtn.type = 'button'
+  copyBtn.className = 'code-btn code-copy-btn'
+  copyBtn.innerHTML = ICON_COPY
+  copyBtn.setAttribute('data-tip', '复制代码')
+  copyBtn.setAttribute('aria-label', '复制代码')
+  return copyBtn
+}
+
 /**
  * 给已渲染正文里的每个代码块右上角加一个“复制”按钮。
  * - 文章详情（技术 / 文章分享）、学习专题、后台与投稿预览共用 .article-body，因此一处生效；
@@ -73,14 +96,7 @@ export function enhanceCodeBlocks(container: HTMLElement | null): void {
     wrapper.className = 'code-block'
     pre.parentNode?.insertBefore(wrapper, pre)
     wrapper.appendChild(pre)
-
-    const btn = document.createElement('button')
-    btn.type = 'button'
-    btn.className = 'code-copy-btn'
-    btn.textContent = '复制'
-    btn.title = '复制代码'
-    btn.setAttribute('aria-label', '复制代码')
-    wrapper.appendChild(btn)
+    wrapper.appendChild(createCopyButton())
   })
 
   // 兜底：Mermaid 代码块被 renderDiagrams 换成图后，包裹层里可能只剩下图，需要拆掉空壳（保留图本身）
@@ -96,7 +112,8 @@ export function enhanceCodeBlocks(container: HTMLElement | null): void {
 let codeCopyInited = false
 
 /**
- * 全局代理代码块“复制”按钮的点击（事件委托，正文重新渲染后无需重新绑定），
+ * 全局代理代码块“复制”按钮的点击（事件委托，正文重新渲染后无需重新绑定）：
+ * 点击后复制该代码块的纯文本，成功时图标变对勾、提示变「已复制」。
  * 并用 MutationObserver 自动给正文里新出现的代码块补上按钮：
  * 任何页面（含以后新增的页面）只要用 .article-body 渲染正文，代码块 / 文本块 / 脚本块都会自动带上复制按钮。
  */
@@ -104,19 +121,26 @@ export function enableCodeCopy(): void {
   if (codeCopyInited) return
   codeCopyInited = true
   document.addEventListener('click', async (e: MouseEvent) => {
-    const btn = (e.target as HTMLElement).closest('.code-copy-btn') as HTMLButtonElement | null
-    if (!btn) return
+    const target = e.target as HTMLElement
+
+    const copyBtn = target.closest('.code-copy-btn') as HTMLButtonElement | null
+    if (!copyBtn) return
     e.preventDefault()
-    const pre = btn.closest('.code-block')?.querySelector('pre')
+    const pre = copyBtn.closest('.code-block')?.querySelector('pre')
     const text = (pre?.querySelector('code') ?? pre)?.textContent ?? ''
     if (!text) return
     const ok = await copyText(text)
-    btn.textContent = ok ? '已复制' : '复制失败'
-    btn.classList.toggle('is-copied', ok)
-    btn.classList.toggle('is-failed', !ok)
+    copyBtn.innerHTML = ok ? ICON_COPIED : ICON_COPY
+    copyBtn.classList.toggle('is-copied', ok)
+    copyBtn.classList.toggle('is-failed', !ok)
+    const tip = ok ? '已复制' : '复制失败'
+    copyBtn.setAttribute('data-tip', tip)
+    copyBtn.setAttribute('aria-label', tip)
     window.setTimeout(() => {
-      btn.textContent = '复制'
-      btn.classList.remove('is-copied', 'is-failed')
+      copyBtn.innerHTML = ICON_COPY
+      copyBtn.classList.remove('is-copied', 'is-failed')
+      copyBtn.setAttribute('data-tip', '复制代码')
+      copyBtn.setAttribute('aria-label', '复制代码')
     }, 1600)
   })
 

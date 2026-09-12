@@ -1,6 +1,5 @@
 <template>
   <div class="page">
-    <AppHeader v-if="!embedded" />
     <div class="page-body" :class="{ embedded }">
       <main class="content">
         <el-breadcrumb v-if="!embedded" class="breadcrumb-bar" separator="/">
@@ -119,7 +118,9 @@
               </div>
             </el-form-item>
             <el-form-item>
-              <el-button type="primary" :loading="saving" @click="submit">{{ isEdit ? '保存修改' : '保存并查看' }}</el-button>
+              <!-- 保存：留在后台的题目管理列表；保存并查看：跳到这条内容的正文页 -->
+              <el-button type="primary" :loading="saving" @click="submit('list')">保存</el-button>
+              <el-button :loading="saving" @click="submit('view')">保存并查看</el-button>
             </el-form-item>
           </el-form>
         </div>
@@ -155,7 +156,6 @@
         </el-dialog>
       </main>
     </div>
-    <AppFooter v-if="!embedded" />
   </div>
 </template>
 
@@ -166,8 +166,6 @@ import { ElMessage, type UploadFile, type UploadUserFile } from 'element-plus'
 import { Plus, UploadFilled } from '@element-plus/icons-vue'
 import { unsavedState } from '@/utils/unsaved'
 import { enhanceCodeBlocks, highlightCodeBlocks, renderDiagrams, renderMarkdown } from '@/utils/markdown'
-import AppHeader from '@/components/layout/AppHeader.vue'
-import AppFooter from '@/components/layout/AppFooter.vue'
 import CategoryManageDialog from '@/components/admin/CategoryManageDialog.vue'
 import { getArticleDetail, createArticleApi, updateArticleApi } from '@/api/article'
 import { uploadCoverApi } from '@/api/admin'
@@ -511,11 +509,16 @@ async function loadForEdit() {
     form.content = a.contentMd || htmlToText(a.contentHtml)
     initialSnapshot.value = snapshotForm()
   } catch {
-    router.replace('/admin')
+    // 编辑页加载失败：回后台列表，不再跳「添加内容」页
+    router.replace('/admin/articles')
   }
 }
 
-async function submit() {
+/**
+ * 保存内容。
+ * @param after 'list' = 保存后留在后台（回题目管理列表）；'view' = 保存后跳到这条内容的正文页
+ */
+async function submit(after: 'list' | 'view' = 'list') {
   if (!form.title.trim()) {
     ElMessage.warning('请填写标题')
     return
@@ -550,21 +553,27 @@ async function submit() {
       tags,
       contentMd: resolvePasteImages(form.content)
     }
-    const article = isEdit.value
+    const saved = isEdit.value
       ? await updateArticleApi(detailId.value, payload)
       : await createArticleApi(payload)
     ElMessage.success(isEdit.value ? '修改成功' : '添加成功')
     initialSnapshot.value = snapshotForm()
     unsavedState.dirty = false
     draft.clear()
-    const savedColumnType = article.columnType || form.columnType
-    if (savedColumnType === 'learn') {
-      const cat = learnCategories.value.find((c) => c.id === form.learnCategoryId)
-      router.push({ path: cat ? `/learn/${cat.slug}` : '/learn', query: { article: article.slug } })
-    } else if (savedColumnType === 'topic') {
-      router.push(`/articles/${article.slug}`)
+    if (after === 'view') {
+      // 保存并查看：跳到该内容的正文页（按专栏走各自的路由）
+      const columnType = saved.columnType || form.columnType
+      if (columnType === 'learn') {
+        const cat = learnCategories.value.find((c) => c.id === form.learnCategoryId)
+        router.push({ path: cat ? `/learn/${cat.slug}` : '/learn', query: { article: saved.slug } })
+      } else if (columnType === 'topic') {
+        router.push(`/articles/${saved.slug}`)
+      } else {
+        router.push(`/article/${saved.slug}`)
+      }
     } else {
-      router.push(`/article/${article.slug}`)
+      // 保存：留在后台，回到题目管理列表，方便接着维护下一篇
+      router.push('/admin/articles')
     }
   } finally {
     saving.value = false
@@ -574,7 +583,7 @@ async function submit() {
 
 <style scoped>
 .page {
-  min-height: 100vh;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
 }

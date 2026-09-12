@@ -3,11 +3,8 @@
     <!-- 全局背景：登录页背景图 + 暗色渐变，铺满几乎所有页面 -->
     <div class="app-bg" aria-hidden="true"></div>
     <div class="app-view">
-      <router-view v-slot="{ Component }">
-        <transition name="page" mode="out-in">
-          <component :is="Component" />
-        </transition>
-      </router-view>
+      <!-- 不加过场动画：点击导航立即切换，顶部导航栏由布局保持不动 -->
+      <router-view />
     </div>
   </div>
 </template>
@@ -57,19 +54,4 @@ onMounted(initTheme)
   z-index: 1;
 }
 
-.page-enter-active,
-.page-leave-active {
-  transition: opacity 0.28s ease, transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: opacity, transform;
-}
-
-.page-enter-from {
-  opacity: 0;
-  transform: translateY(14px) scale(0.995);
-}
-
-.page-leave-to {
-  opacity: 0;
-  transform: translateY(-8px) scale(0.998);
-}
 </style>

@@ -1,6 +1,5 @@
 <template>
   <div class="page">
-    <AppHeader />
     <div class="page-body">
       <main class="content">
         <el-breadcrumb class="breadcrumb-bar" separator="/">
@@ -56,7 +55,6 @@
         </div>
       </main>
     </div>
-    <AppFooter />
   </div>
 </template>
 
@@ -64,8 +62,6 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-import AppHeader from '@/components/layout/AppHeader.vue'
-import AppFooter from '@/components/layout/AppFooter.vue'
 import VerifyCodeButton from '@/components/common/VerifyCodeButton.vue'
 import { changePasswordApi, resetPasswordByCodeApi } from '@/api/auth'
 import { useAuthStore } from '@/stores/auth'
@@ -170,7 +166,7 @@ async function submit() {
 
 <style scoped>
 .page {
-  min-height: 100vh;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
 }

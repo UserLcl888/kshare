@@ -332,10 +332,10 @@ async function onCommand(command: string) {
   flex-shrink: 0;
   font-size: clamp(18px, 5vw, 23px);
   font-weight: 700;
-  color: #e9b862;
+  color: var(--app-brand-color);
   white-space: nowrap;
   letter-spacing: 2px;
-  text-shadow: 0 0 18px rgba(232, 154, 31, 0.35);
+  text-shadow: 0 0 18px var(--app-brand-glow);
   position: relative;
   text-decoration: none;
   transition: filter 0.25s;
@@ -344,7 +344,7 @@ async function onCommand(command: string) {
   content: attr(data-text);
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent 0%, #fff 45%, #ffe9c4 50%, #fff 55%, transparent 100%);
+  background: var(--app-brand-shimmer);
   background-size: 250% 100%;
   -webkit-background-clip: text;
           background-clip: text;

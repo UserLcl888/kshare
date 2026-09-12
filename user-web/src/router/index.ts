@@ -9,25 +9,47 @@ const router = createRouter({
   routes: [
     // 根路径 = 登录门户页（未登录展示；已登录自动跳 /home）
     { path: '/', name: 'portal', component: () => import('@/views/LoginView.vue'), meta: { guestOnly: true } },
-    { path: '/home', name: 'home', component: () => import('@/views/HomeView.vue') },
-    { path: '/learn', name: 'learn', component: () => import('@/views/LearnView.vue') },
-    { path: '/learn/:categorySlug', name: 'learn-category', component: () => import('@/views/LearnCategoryView.vue') },
-    { path: '/articles', name: 'articles', component: () => import('@/views/ArticlesView.vue') },
-    { path: '/articles/:slug', name: 'articles-article', component: () => import('@/views/ArticleDetailView.vue') },
-    { path: '/author', name: 'author', component: () => import('@/views/AuthorView.vue') },
+    // 用户端统一切到这个布局：顶部导航栏只挂载一次，切页时只有下方内容区变化
+    {
+      path: '/',
+      component: () => import('@/components/layout/UserLayout.vue'),
+      children: [
+        { path: 'home', name: 'home', component: () => import('@/views/HomeView.vue') },
+        { path: 'learn', name: 'learn', component: () => import('@/views/LearnView.vue') },
+        { path: 'learn/:categorySlug', name: 'learn-category', component: () => import('@/views/LearnCategoryView.vue') },
+        { path: 'articles', name: 'articles', component: () => import('@/views/ArticlesView.vue') },
+        { path: 'articles/:slug', name: 'articles-article', component: () => import('@/views/ArticleDetailView.vue') },
+        { path: 'author', name: 'author', component: () => import('@/views/AuthorView.vue') },
+        { path: 'category/:slug', name: 'category', component: () => import('@/views/CategoryView.vue') },
+        { path: 'article/:slug', name: 'article', component: () => import('@/views/ArticleDetailView.vue') },
+        { path: 'profile', name: 'profile', component: () => import('@/views/ProfileView.vue'), meta: { requiresAuth: true } },
+        { path: 'profile/password', name: 'change-password', component: () => import('@/views/ChangePasswordView.vue'), meta: { requiresAuth: true } },
+        { path: 'profile/applies', name: 'profile-applies', component: () => import('@/views/MyAccessView.vue'), meta: { requiresAuth: true } },
+        { path: 'profile/uploads', name: 'profile-uploads', component: () => import('@/views/ProfileUploadView.vue'), meta: { requiresAuth: true } }
+      ]
+    },
     { path: '/topic', redirect: '/articles' },
     { path: '/topic/:slug', redirect: (to) => `/articles/${to.params.slug}` },
-    { path: '/category/:slug', name: 'category', component: () => import('@/views/CategoryView.vue') },
-    { path: '/article/:slug', name: 'article', component: () => import('@/views/ArticleDetailView.vue') },
     { path: '/login', name: 'login', component: () => import('@/views/LoginView.vue'), meta: { guestOnly: true } },
     { path: '/register', name: 'register', component: () => import('@/views/RegisterView.vue'), meta: { guestOnly: true } },
     { path: '/forgot-password', name: 'forgot-password', component: () => import('@/views/ForgotPasswordView.vue'), meta: { guestOnly: true } },
-    { path: '/profile', name: 'profile', component: () => import('@/views/ProfileView.vue'), meta: { requiresAuth: true } },
-    { path: '/profile/password', name: 'change-password', component: () => import('@/views/ChangePasswordView.vue'), meta: { requiresAuth: true } },
-    { path: '/profile/applies', name: 'profile-applies', component: () => import('@/views/MyAccessView.vue'), meta: { requiresAuth: true } },
-    { path: '/profile/uploads', name: 'profile-uploads', component: () => import('@/views/ProfileUploadView.vue'), meta: { requiresAuth: true } },
-    { path: '/admin', name: 'admin', component: () => import('@/views/AdminView.vue'), meta: { requiresAuth: true, requiresAdmin: true } },
-    { path: '/admin/edit/:slug', name: 'admin-edit', component: () => import('@/views/AdminView.vue'), meta: { requiresAuth: true, requiresAdmin: true } },
+    // 后台「添加内容 / 编辑内容」也走后台外壳（嵌入式渲染编辑页），避免在两种布局之间来回跳
+    {
+      path: '/admin',
+      component: () => import('@/components/layout/AdminLayout.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+      children: [
+        { path: '', name: 'admin', component: () => import('@/views/AdminView.vue'), meta: { embedded: true } }
+      ]
+    },
+    {
+      path: '/admin/edit/:slug',
+      component: () => import('@/components/layout/AdminLayout.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+      children: [
+        { path: '', name: 'admin-edit', component: () => import('@/views/AdminView.vue'), meta: { embedded: true } }
+      ]
+    },
     {
       path: '/admin/articles/create',
       component: () => import('@/components/layout/AdminLayout.vue'),

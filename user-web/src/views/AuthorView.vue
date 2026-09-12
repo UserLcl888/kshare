@@ -1,6 +1,5 @@
 <template>
   <div class="author-page">
-    <AppHeader />
     <div class="author-body">
       <!-- 左侧目录 -->
       <aside class="author-nav">
@@ -83,14 +82,11 @@
         </section>
       </main>
     </div>
-    <AppFooter />
   </div>
 </template>
 
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
-import AppHeader from '@/components/layout/AppHeader.vue'
-import AppFooter from '@/components/layout/AppFooter.vue'
 
 const nav = [
   { id: 'about', label: '关于我' },
@@ -151,7 +147,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .author-page {
-  min-height: 100vh;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
 }

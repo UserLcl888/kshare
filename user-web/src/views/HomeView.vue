@@ -1,6 +1,5 @@
 <template>
   <div class="page">
-    <AppHeader />
     <div class="page-body">
       <aside class="left-col">
         <CategorySidebar :active-category-slug="''" :active-article-slug="''" />
@@ -42,13 +41,12 @@
             :to="`/category/${cat.slug}`"
             class="category-card"
           >
+            <span class="card-mark" aria-hidden="true">{{ cat.name.slice(0, 1) }}</span>
             <div class="card-name">{{ cat.name }}</div>
             <div class="card-desc">{{ cat.description || '暂无描述' }}</div>
             <span class="card-link">进入分类 →</span>
           </router-link>
         </div>
-
-    <div class="home-footer">知识分享 · 仅供学习交流使用</div>
       </main>
 
       <aside class="right-col">
@@ -104,8 +102,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import AppHeader from '@/components/layout/AppHeader.vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import CategorySidebar from '@/components/layout/CategorySidebar.vue'
 import { useCategoryStore } from '@/stores/category'
 import { useAuthStore } from '@/stores/auth'
@@ -120,7 +117,16 @@ const auth = useAuthStore()
 const loading = ref(true)
 const overview = ref<HomeOverview | null>(null)
 const categories = computed(() => categoryStore.tree)
-const visibleCategories = computed(() => categories.value.slice(0, 8))
+
+/**
+ * 首页分类方块：固定两排（4 列 × 2 行 = 8 个）。
+ * 顺序/内容以后改动只影响展示哪几个，不影响两排的版式。
+ */
+const GRID_COLUMNS = 4
+const GRID_ROWS = 2
+
+/** 固定两排（分类不足 8 个时有多少展示多少） */
+const visibleCategories = computed(() => categories.value.slice(0, GRID_COLUMNS * GRID_ROWS))
 
 const quote = ref({ text: '每一天都是新的开始，加油！', author: '每日一句' })
 const notices = ref<NoticeItem[]>([])
@@ -211,7 +217,7 @@ usePolling(loadNotices, 20000)
 
 <style scoped>
 .page {
-  min-height: 100vh;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
 }
@@ -300,7 +306,7 @@ usePolling(loadNotices, 20000)
 .side-title {
   font-size: 14px;
   font-weight: 600;
-  color: #e9b862;
+  color: var(--app-title-accent);
   padding-left: 8px;
   border-left: 3px solid var(--app-accent);
   margin-bottom: 10px;
@@ -321,7 +327,7 @@ usePolling(loadNotices, 20000)
   margin: 0 0 6px;
   font-size: 13px;
   line-height: 1.7;
-  color: #b8c0cf;
+  color: var(--app-text-body);
 }
 
 .quote-author {
@@ -347,8 +353,9 @@ usePolling(loadNotices, 20000)
   padding: 0 12px;
   margin-bottom: 10px;
   border-radius: 10px;
-  background: rgba(20, 26, 38, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  /* 背景/描边/文字都随主题变化（amber / black / white 各一套） */
+  background: var(--app-notice-bg);
+  border: 1px solid var(--app-notice-border);
   overflow: hidden;
 }
 
@@ -392,7 +399,7 @@ usePolling(loadNotices, 20000)
   display: inline-flex;
   align-items: center;
   margin-right: 44px;
-  color: #c7cfda;
+  color: var(--app-notice-text);
   font-size: 13px;
 }
 
@@ -427,22 +434,57 @@ usePolling(loadNotices, 20000)
   display: block;
 }
 
-/* 分类卡片 */
+/* 分类卡片：固定两排（4 列 × 2 行）。卡片保持紧凑高度，剩余空间平均分配到行间与上下 */
 .category-grid {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  grid-auto-rows: minmax(148px, auto);
+  align-content: space-evenly;
+  gap: 16px;
+  padding-right: 2px;
+}
+
+/* 屏幕越高、卡片适当加高，避免两排之间的空隙被拉得太大 */
+@media (min-height: 860px) {
+  .category-grid {
+    grid-auto-rows: minmax(172px, auto);
+  }
+}
+
+@media (min-height: 1000px) {
+  .category-grid {
+    grid-auto-rows: minmax(196px, auto);
+  }
 }
 
 .category-card {
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   background: var(--app-card);
   border: 1px solid var(--app-border);
   border-radius: 12px;
-  padding: 14px 16px;
+  padding: 16px 18px;
   transition: all 0.15s;
+}
+
+/* 右下角淡化首字母：卡片被拉高时作为装饰，视觉上不空 */
+.card-mark {
+  position: absolute;
+  right: 12px;
+  bottom: 6px;
+  font-size: 52px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--app-accent);
+  opacity: 0.1;
+  pointer-events: none;
+  user-select: none;
 }
 
 .category-card:hover {
@@ -453,8 +495,9 @@ usePolling(loadNotices, 20000)
 }
 
 .card-name {
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 600;
+  line-height: 1.3;
   color: var(--app-text);
 }
 
@@ -462,9 +505,15 @@ usePolling(loadNotices, 20000)
   color: var(--app-text-secondary);
   font-size: 13px;
   line-height: 1.55;
+  /* 描述最多两行，避免长短不一撑破卡片 */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .card-link {
+  margin-top: auto;
   color: var(--app-accent);
   font-size: 13px;
   font-weight: 600;
@@ -474,14 +523,6 @@ usePolling(loadNotices, 20000)
   padding: 30px;
   text-align: center;
   color: var(--app-text-secondary);
-}
-
-.home-footer {
-  margin-top: auto;
-  text-align: center;
-  padding: 18px 0 4px;
-  color: var(--app-text-secondary);
-  font-size: 13px;
 }
 
 /* 热门文档 */
@@ -506,7 +547,7 @@ usePolling(loadNotices, 20000)
   padding: 7px 4px;
   border-radius: 6px;
   font-size: 13px;
-  color: #b8c0cf;
+  color: var(--app-text-body);
   transition: all 0.15s;
   /* 10 条自动均分撑满卡片高度，避免窗口高时底部留白；空间不足时不压缩，改为列表滚动 */
   flex: 1 0 auto;
@@ -591,7 +632,7 @@ usePolling(loadNotices, 20000)
 .stat-num {
   font-size: 24px;
   font-weight: 700;
-  color: #e9b862;
+  color: var(--app-title-accent);
 }
 
 .stat-label {
@@ -600,12 +641,4 @@ usePolling(loadNotices, 20000)
   color: var(--app-text-secondary);
 }
 
-/* 视口较矮时：中间分类方块区内部滚动，避免整页滚动 */
-@media (max-height: 700px) {
-  .category-grid {
-    max-height: calc(100vh - 460px);
-    overflow-y: auto;
-    padding-right: 4px;
-  }
-}
 </style>

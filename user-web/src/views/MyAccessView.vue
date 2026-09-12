@@ -1,6 +1,5 @@
 <template>
   <div class="page">
-    <AppHeader />
     <div class="page-body">
       <main class="content">
         <el-breadcrumb class="breadcrumb-bar" separator="/">
@@ -59,14 +58,11 @@
         </div>
       </main>
     </div>
-    <AppFooter />
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import AppHeader from '@/components/layout/AppHeader.vue'
-import AppFooter from '@/components/layout/AppFooter.vue'
 import { getMyAccessApi } from '@/api/access'
 import { formatDateTime } from '@/utils/format'
 import type { AccessApplyItem } from '@/types'
@@ -94,7 +90,7 @@ onMounted(async () => {
 
 <style scoped>
 .page {
-  min-height: 100vh;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
 }

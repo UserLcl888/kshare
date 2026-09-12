@@ -1,6 +1,5 @@
 <template>
   <div class="page">
-    <AppHeader />
     <div class="page-body">
       <main class="content">
         <el-breadcrumb class="breadcrumb-bar" separator="/">
@@ -154,7 +153,6 @@
         </el-dialog>
       </main>
     </div>
-    <AppFooter />
   </div>
 </template>
 
@@ -163,8 +161,6 @@ import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } 
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox, type UploadFile, type UploadUserFile } from 'element-plus'
 import { UploadFilled } from '@element-plus/icons-vue'
-import AppHeader from '@/components/layout/AppHeader.vue'
-import AppFooter from '@/components/layout/AppFooter.vue'
 import { useCategoryStore } from '@/stores/category'
 import { createUserUploadApi, deleteMyUploadApi, getMyUploadDetailApi, getMyUploadsApi } from '@/api/upload'
 import { enhanceCodeBlocks, highlightCodeBlocks, renderDiagrams, renderMarkdown } from '@/utils/markdown'
@@ -454,7 +450,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .page {
-  min-height: 100vh;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
 }

@@ -1,6 +1,5 @@
 <template>
   <div class="learn-cat-page">
-    <AppHeader />
     <div class="learn-cat-body">
       <!-- 左：该板块学习文章列表（无滚动条，随页面滑动） -->
       <aside class="cat-list">
@@ -58,15 +57,12 @@
         </a>
       </aside>
     </div>
-    <AppFooter />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import AppHeader from '@/components/layout/AppHeader.vue'
-import AppFooter from '@/components/layout/AppFooter.vue'
 import { useAuthStore } from '@/stores/auth'
 import { getArticleDetail, getLearnArticlesApi, getLearnCategoriesApi } from '@/api/article'
 import { enhanceCodeBlocks, highlightCodeBlocks, renderDiagrams, renderMarkdown } from '@/utils/markdown'
@@ -138,7 +134,7 @@ watch(categorySlug, () => {
 
 <style scoped>
 .learn-cat-page {
-  min-height: 100vh;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
 }

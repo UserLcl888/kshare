@@ -14,6 +14,19 @@
   --app-card-translucent: rgba(18, 24, 38, 0.66);
   --app-card-translucent-hover: rgba(24, 32, 50, 0.8);
 
+  /* 首页公告条：随主题变化 */
+  --app-notice-bg: rgba(20, 26, 38, 0.62);
+  --app-notice-border: rgba(255, 255, 255, 0.08);
+  --app-notice-text: #c7cfda;
+
+  /* 语义色：随主题变化，避免浅色主题下出现"金/灰发白"看不清的问题 */
+  --app-title-accent: #e9b862;   /* 卡片小标题、统计数字 */
+  --app-text-body: #b8c0cf;      /* 正文次要文本 */
+  --app-on-accent: #141a26;      /* 强调色底上的文字 */
+  --app-brand-color: #e9b862;    /* 站名 */
+  --app-brand-glow: rgba(232, 154, 31, 0.35);
+  --app-brand-shimmer: linear-gradient(90deg, transparent 0%, #fff 45%, #ffe9c4 50%, #fff 55%, transparent 100%);
+
   --brand-width: 148px;   /* Logo + 站点名宽度 */
   --header-gap: 28px;     /* Logo 与导航的间距 */
   --layout-pad-x: 24px;   /* 页面左右边距 */
@@ -84,6 +97,10 @@ html[data-theme='black'] {
   --app-card-translucent: rgba(9, 12, 18, 0.9);
   --app-card-translucent-hover: rgba(14, 19, 27, 0.92);
 
+  --app-notice-bg: rgba(10, 13, 20, 0.82);
+  --app-notice-border: rgba(255, 255, 255, 0.07);
+  --app-notice-text: #c2ccd9;
+
   --el-bg-color: #0b0e14;
   --el-bg-color-page: #06080d;
   --el-bg-color-overlay: #11151d;
@@ -116,18 +133,30 @@ html[data-theme='black'] {
 
 /* ============ 主题：白色（浅色，背景去图片） ============ */
 html[data-theme='white'] {
-  --app-bg: #f4f5f7;
-  --app-card: #ffffff;
-  --app-card-hover: #f6f7f9;
-  --app-border: #e3e6ec;
+  /* 米白（暖调）：比纯白柔和，长时间阅读不刺眼 */
+  --app-bg: #f6f3ec;
+  --app-card: #fffdf8;
+  --app-card-hover: #f2eee4;
+  --app-border: #e7e1d5;
   --app-text: #1f2937;
   --app-text-secondary: #6b7280;
   --app-accent: #b0740a;
   --app-accent-soft: rgba(176, 116, 10, 0.12);
-  --app-header-bg: rgba(255, 255, 255, 0.92);
-  --app-sidebar-bg: #ffffff;
-  --app-card-translucent: rgba(255, 255, 255, 0.96);
-  --app-card-translucent-hover: #f6f7f9;
+  --app-header-bg: rgba(253, 251, 246, 0.94);
+  --app-sidebar-bg: #fffdf8;
+  --app-card-translucent: rgba(255, 253, 248, 0.96);
+  --app-card-translucent-hover: #f2eee4;
+
+  --app-notice-bg: #f7f3ea;
+  --app-notice-border: rgba(176, 116, 10, 0.18);
+  --app-notice-text: #5b6472;
+
+  --app-title-accent: #a9700a;
+  --app-text-body: #4b5563;
+  --app-on-accent: #fffdf8;
+  --app-brand-color: #b0740a;
+  --app-brand-glow: rgba(176, 116, 10, 0.16);
+  --app-brand-shimmer: linear-gradient(90deg, transparent 0%, rgba(176, 116, 10, 0.28) 45%, #d9a716 50%, rgba(176, 116, 10, 0.28) 55%, transparent 100%);
 
   --el-color-primary: #b0740a;
   --el-color-primary-light-3: #b98c3e;
@@ -137,34 +166,34 @@ html[data-theme='white'] {
   --el-color-primary-light-9: #f8eedd;
   --el-color-primary-dark-2: #8f5e08;
 
-  --el-bg-color: #ffffff;
-  --el-bg-color-page: #f4f5f7;
-  --el-bg-color-overlay: #ffffff;
-  --el-fill-color-blank: #ffffff;
-  --el-fill-color: #f0f2f5;
-  --el-fill-color-light: #f5f7fa;
-  --el-fill-color-lighter: #fafbfc;
-  --el-fill-color-extra-light: #fbfcfd;
-  --el-fill-color-dark: #e5e7eb;
-  --el-fill-color-darker: #d9dde3;
+  --el-bg-color: #fffdf8;
+  --el-bg-color-page: #f6f3ec;
+  --el-bg-color-overlay: #fffdf8;
+  --el-fill-color-blank: #fffdf8;
+  --el-fill-color: #f2eee4;
+  --el-fill-color-light: #f5f1e8;
+  --el-fill-color-lighter: #faf7f0;
+  --el-fill-color-extra-light: #fbf9f4;
+  --el-fill-color-dark: #e9e3d7;
+  --el-fill-color-darker: #ded7c8;
   --el-text-color-primary: #1f2937;
   --el-text-color-regular: #374151;
   --el-text-color-secondary: #6b7280;
   --el-text-color-placeholder: #9ca3af;
   --el-text-color-disabled: #c2c8d0;
-  --el-border-color: #dcdfe6;
-  --el-border-color-light: #e4e7ed;
-  --el-border-color-lighter: #ebeef5;
-  --el-border-color-extra-light: #f2f6fc;
-  --el-border-color-dark: #d3d8e0;
-  --el-border-color-darker: #c6ccd6;
+  --el-border-color: #e2dcd0;
+  --el-border-color-light: #e9e4da;
+  --el-border-color-lighter: #efeae1;
+  --el-border-color-extra-light: #f5f2ec;
+  --el-border-color-dark: #d8d1c4;
+  --el-border-color-darker: #cbc3b4;
   --el-mask-color: rgba(31, 41, 55, 0.45);
   --el-box-shadow-light: 0 8px 24px rgba(0, 0, 0, 0.08);
   --el-box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
-  --el-disabled-bg-color: #eef0f3;
+  --el-disabled-bg-color: #f0ece3;
   --el-disabled-text-color: #b6bcc6;
-  --el-disabled-border-color: #e4e7ed;
-  --el-message-bg-color: #ffffff;
+  --el-disabled-border-color: #e9e4da;
+  --el-message-bg-color: #fffdf8;
 }
 
 /* 白色模式下 Element Plus 弹层改浅色（覆盖顶部对暗色的统一覆盖） */
@@ -174,7 +203,7 @@ html[data-theme='white'] .el-message-box,
 html[data-theme='white'] .el-popover,
 html[data-theme='white'] .el-dropdown-menu,
 html[data-theme='white'] .el-popper.is-light {
-  --el-bg-color-overlay: #ffffff;
+  --el-bg-color-overlay: #fffdf8;
 }
 
 /* 黑白模式：忽略背景图片与头部极光装饰 */
@@ -548,43 +577,63 @@ html[data-theme='white'] {
   position: relative;
 }
 
-.article-body .code-copy-btn {
+/* 复制按钮：常驻在代码块右上角，不随鼠标显隐 */
+.article-body .code-btn {
   position: absolute;
   top: 8px;
   right: 8px;
   z-index: 1;
-  padding: 2px 10px;
-  font-size: 12px;
-  line-height: 1.7;
-  font-family: inherit;
-  font-weight: 600;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   color: var(--code-copy-color);
-  background: var(--code-copy-bg);
-  border: 1px solid var(--code-copy-border);
-  border-radius: 6px;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
   cursor: pointer;
-  /* 常驻显示，不随鼠标移入移出变化 */
-  opacity: 1;
-  transition: color 0.15s, border-color 0.15s, background-color 0.15s;
+  transition: color 0.15s, background-color 0.15s;
 }
 
-.article-body .code-copy-btn:hover {
-  color: var(--code-copy-color);
-  border-color: var(--code-copy-color);
-  background: var(--code-copy-bg);
-  filter: brightness(1.25);
+.article-body .code-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
 }
 
-.article-body .code-copy-btn.is-copied {
+.article-body .code-btn.is-copied {
   color: #6ee7a8;
-  border-color: #6ee7a8;
-  background: rgba(110, 231, 168, 0.14);
 }
 
-.article-body .code-copy-btn.is-failed {
+.article-body .code-btn.is-failed {
   color: #ff8f8f;
-  border-color: #ff8f8f;
-  background: rgba(255, 143, 143, 0.14);
+}
+
+/* 悬停提示：浅色圆角气泡，右对齐按钮，不会溢出页面 */
+.article-body .code-btn[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  right: -2px;
+  bottom: calc(100% + 8px);
+  z-index: 2;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: nowrap;
+  color: #1f2430;
+  background: #f4f5f7;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.12s ease;
+  pointer-events: none;
+}
+
+.article-body .code-btn[data-tip]:hover::after {
+  opacity: 1;
+  visibility: visible;
 }
 
 .article-body blockquote {

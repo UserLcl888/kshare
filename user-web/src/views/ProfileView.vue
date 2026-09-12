@@ -1,6 +1,5 @@
 <template>
   <div class="page">
-    <AppHeader />
     <div class="page-body">
       <main class="content">
         <el-breadcrumb class="breadcrumb-bar" separator="/">
@@ -94,7 +93,6 @@
         </el-dialog>
       </main>
     </div>
-    <AppFooter />
   </div>
 </template>
 
@@ -102,8 +100,6 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { EditPen, Lock, Tickets } from '@element-plus/icons-vue'
-import AppHeader from '@/components/layout/AppHeader.vue'
-import AppFooter from '@/components/layout/AppFooter.vue'
 import { useAuthStore } from '@/stores/auth'
 import { updateNicknameApi, updateAvatarApi } from '@/api/auth'
 import { dataUrlToFile, readFileAsDataUrl } from '@/utils/file'
@@ -200,7 +196,7 @@ async function saveNickname() {
 
 <style scoped>
 .page {
-  min-height: 100vh;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
 }
