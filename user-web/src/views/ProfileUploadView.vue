@@ -223,8 +223,7 @@ function snapshotForm(): string {
     customCategory: form.customCategory,
     groupMode: form.groupMode,
     customGroup: form.customGroup,
-    mdContent: mdContent.value,
-    mdFileName: mdFileList.value[0]?.name || ''
+    mdContent: mdContent.value
   })
 }
 
@@ -248,7 +247,7 @@ function restoreForm() {
     if (saved.customGroup) form.customGroup = saved.customGroup
     if (saved.mdContent) {
       mdContent.value = saved.mdContent
-      const fileName = saved.mdFileName || 'restored.md'
+      const fileName = 'restored.md'
       mdFileList.value = [{ name: fileName, status: 'ready' }] as UploadUserFile[]
       selectedRawFile.value = new File([saved.mdContent], fileName, { type: 'text/markdown' })
     }
@@ -470,7 +469,7 @@ onBeforeUnmount(() => {
 
 .section-title {
   margin: 0 0 16px;
-  color: #e9b862;
+  color: var(--app-title-accent);
 }
 
 .upload-form {

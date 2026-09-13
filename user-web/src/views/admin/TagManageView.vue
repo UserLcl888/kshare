@@ -35,8 +35,9 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
+import { useDraftStorage } from '@/composables/useDraft'
 import {
   getAdminTagsApi,
   createAdminTagApi,
@@ -54,6 +55,26 @@ const form = reactive({ id: 0, name: '' })
 const rules: FormRules = {
   name: [{ required: true, message: '请输入标签名', trigger: 'blur' }]
 }
+
+// 弹窗里的输入先存草稿：刷新后自动恢复并重新打开弹窗，不用重填
+const draft = useDraftStorage({
+  getKey: () => 'draft:admin:tag',
+  getSnapshot: () => JSON.stringify({ id: form.id, name: form.name }),
+  restore: (raw) => {
+    try {
+      const s = JSON.parse(raw) as { id?: number; name?: string }
+      form.id = Number(s.id) || 0
+      form.name = typeof s.name === 'string' ? s.name : ''
+    } catch {
+      // 草稿损坏时忽略
+    }
+  }
+})
+
+// 关闭弹窗（取消/叉掉）即丢弃草稿，避免下次刷新又弹出来
+watch(dialogVisible, (visible) => {
+  if (!visible) draft.clear()
+})
 
 async function load() {
   try {
@@ -80,6 +101,7 @@ async function submit() {
       await createAdminTagApi(form.name.trim())
     }
     ElMessage.success('保存成功')
+    draft.clear()
     dialogVisible.value = false
     load()
   } catch {
@@ -106,7 +128,13 @@ async function remove(row: AdminTag) {
   }
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  if (draft.restoreNow()) {
+    dialogVisible.value = true
+    ElMessage.info('已恢复上次未保存的输入')
+  }
+})
 </script>
 
 <style scoped>
@@ -126,7 +154,7 @@ onMounted(load)
 
 .section-title {
   margin: 0;
-  color: #f0c674;
+  color: var(--app-title-accent);
 }
 
 .empty-tip {

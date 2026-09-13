@@ -574,17 +574,17 @@ usePolling(loadNotices, 20000)
 
 .hot-rank.rank-1 {
   background: #d9a716;
-  color: #141a26;
+  color: var(--app-on-accent);
 }
 
 .hot-rank.rank-2 {
   background: #e3b54e;
-  color: #141a26;
+  color: var(--app-on-accent);
 }
 
 .hot-rank.rank-3 {
   background: #e8c96a;
-  color: #141a26;
+  color: var(--app-on-accent);
 }
 
 .hot-title {

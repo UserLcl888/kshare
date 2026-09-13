@@ -10,11 +10,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
-import { useTheme } from '@/composables/useTheme'
-
-const { initTheme } = useTheme()
-onMounted(initTheme)
+// 主题初始化已提前到 main.ts（挂载前应用），避免首屏闪一下默认主题
 </script>
 
 <style>

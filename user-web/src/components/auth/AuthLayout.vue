@@ -166,6 +166,41 @@ const features = [
 </script>
 
 <style scoped>
+/*
+ * 登录 / 注册 / 找回密码 三页固定使用「原始暗色」外观，不跟随全局主题：
+ * 这里把 Element Plus 变量重新声明为默认暗色值，避免切到白色/其它主题后
+ * 输入框变成浅底白框、按钮变暗，与左侧品牌插画区不搭。
+ */
+.auth-page {
+  --el-color-primary: #e89a1f;
+  --el-color-primary-light-3: #efb862;
+  --el-color-primary-light-5: #f4cd8f;
+  --el-color-primary-dark-2: #ba7b19;
+  --el-bg-color: #141a26;
+  --el-bg-color-page: #0a0e17;
+  --el-bg-color-overlay: #1b2332;
+  --el-fill-color-blank: #141a26;
+  --el-fill-color: #1c2434;
+  --el-fill-color-light: #1a2230;
+  --el-fill-color-lighter: #18202d;
+  --el-text-color-primary: #e8ecf3;
+  --el-text-color-regular: #c2cad8;
+  --el-text-color-secondary: #98a3b5;
+  --el-text-color-placeholder: #6b7689;
+  --el-border-color: #2a3344;
+  --el-border-color-light: #253041;
+  --el-border-color-lighter: #202a3a;
+  --el-border-color-hover: #38445a;
+  --el-disabled-bg-color: #10151f;
+  --el-disabled-text-color: #4d5a70;
+  --el-disabled-border-color: #202a3a;
+  --el-mask-color: rgba(5, 8, 15, 0.72);
+  --el-box-shadow-light: 0 8px 24px rgba(0, 0, 0, 0.35);
+  /* 输入框文字/光标与聚焦描边（全局规则用的就是这两个变量） */
+  --app-input-text: #c2cad8;
+  --app-input-focus: #e89a1f;
+}
+
 .auth-page {
   position: relative;
   min-height: 100vh;

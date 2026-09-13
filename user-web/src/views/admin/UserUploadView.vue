@@ -171,9 +171,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useDraftStorage } from '@/composables/useDraft'
 import {
   deleteAdminUploadApi,
   getAdminUploadDetailApi,
@@ -328,6 +329,29 @@ const replyContent = ref('')
 const replying = ref(false)
 const repliedOnce = computed(() => !!replyDetail.value?.adminReply)
 
+// 回复内容先存草稿（sessionStorage）：刷新后自动带回来
+let restoredReply: { id: number; content: string } | null = null
+const replyDraft = useDraftStorage({
+  getKey: () => 'draft:admin:upload-reply',
+  getSnapshot: () =>
+    JSON.stringify({ id: replyDetail.value?.id || 0, content: replyContent.value }),
+  restore: (raw) => {
+    try {
+      const s = JSON.parse(raw) as { id?: number; content?: string }
+      const id = Number(s.id) || 0
+      if (id && String(s.content || '').trim()) {
+        restoredReply = { id, content: String(s.content) }
+      }
+    } catch {
+      // 草稿损坏时忽略
+    }
+  }
+})
+
+watch(replyVisible, (v) => {
+  if (!v) replyDraft.clear()
+})
+
 async function openReply(id: number) {
   replyDetail.value = await getAdminUploadDetailApi(id)
   replyContent.value = ''
@@ -358,6 +382,7 @@ async function submitReply() {
       contentDetail.value = updated
     }
     replyContent.value = ''
+    replyDraft.clear()
     ElMessage.success('回复成功，用户可在“我的上传”中查看')
   } finally {
     replying.value = false
@@ -367,6 +392,12 @@ async function submitReply() {
 onMounted(() => {
   load()
   handleJump()
+  if (replyDraft.restoreNow() && restoredReply) {
+    openReply(restoredReply.id).then(() => {
+      replyContent.value = restoredReply!.content
+      ElMessage.info('已恢复上次未发送的回复内容')
+    })
+  }
   pollTimer = window.setInterval(refreshSilently, 5000)
 })
 
@@ -388,7 +419,7 @@ onBeforeUnmount(() => {
 
 .section-title {
   margin: 0 0 16px;
-  color: #f0c674;
+  color: var(--app-title-accent);
 }
 
 .filters {
@@ -456,7 +487,7 @@ onBeforeUnmount(() => {
 .box-title {
   font-size: 13px;
   font-weight: 600;
-  color: #f0c674;
+  color: var(--app-title-accent);
   margin-bottom: 8px;
 }
 
@@ -482,7 +513,7 @@ onBeforeUnmount(() => {
 .side-title {
   font-size: 14px;
   font-weight: 600;
-  color: #f0c674;
+  color: var(--app-title-accent);
   padding-bottom: 10px;
   border-bottom: 1px solid var(--app-border);
   margin-bottom: 12px;
@@ -527,7 +558,7 @@ onBeforeUnmount(() => {
 .chat-role {
   font-size: 12px;
   font-weight: 600;
-  color: #f0c674;
+  color: var(--app-title-accent);
   margin-bottom: 4px;
 }
 

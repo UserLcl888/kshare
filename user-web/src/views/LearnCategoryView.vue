@@ -159,7 +159,7 @@ watch(categorySlug, () => {
 .cat-list-title {
   font-size: 15px;
   font-weight: 700;
-  color: #e9b862;
+  color: var(--app-title-accent);
   padding: 10px 12px;
   border-left: 3px solid var(--app-accent);
   margin-bottom: 10px;

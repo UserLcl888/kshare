@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { ElMessageBox } from 'element-plus'
 import { unsavedState } from '@/utils/unsaved'
-import { readScroll, rememberScroll, restoreScroll } from '@/utils/scroll'
+import { readScroll, restoreScroll } from '@/utils/scroll'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -143,11 +143,8 @@ const router = createRouter({
   scrollBehavior(to, _from, savedPosition) {
     // 后退/前进：回到历史记录的滚动位置
     if (savedPosition) return savedPosition
-    // 普通路由切换（点了某个链接）：先记住离开页面的位置，再回到顶部
-    if (_from.matched.length > 0) {
-      rememberScroll(_from.fullPath, window.scrollY)
-      return { top: 0 }
-    }
+    // 普通路由切换（点了某个链接）：回到顶部；离开页面的位置不再保留（见 utils/scroll.ts）
+    if (_from.matched.length > 0) return { top: 0 }
     // 刷新 / 首次进入：不强制回顶，异步恢复到之前记住的位置（内容加载完后高度才够）
     const saved = readScroll(to.fullPath)
     if (saved > 0) restoreScroll(saved)

@@ -252,7 +252,7 @@ onMounted(load)
   justify-content: center;
   gap: 5px;
   background: linear-gradient(135deg, rgba(232, 154, 31, 0.22) 0%, rgba(24, 32, 50, 0.9) 70%);
-  color: #e9b862;
+  color: var(--app-title-accent);
 }
 
 .placeholder-main {
@@ -316,7 +316,7 @@ onMounted(load)
   align-items: center;
   gap: 14px;
   font-size: 11.5px;
-  color: #8a9bb5;
+  color: var(--app-text-secondary);
 }
 
 .meta-item {

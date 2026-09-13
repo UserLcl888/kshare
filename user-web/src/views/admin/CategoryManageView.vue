@@ -79,8 +79,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useDraftStorage } from '@/composables/useDraft'
 import { createCategoryApi, updateCategoryApi, deleteCategoryApi } from '@/api/category'
 import { useCategoryStore } from '@/stores/category'
 import type { CategoryNode } from '@/types'
@@ -99,6 +100,24 @@ interface EditingState {
 }
 
 const editing = ref<EditingState | null>(null)
+
+// 正在新增/编辑的那一行先存草稿（sessionStorage）：刷新后自动带回来继续填
+const editDraft = useDraftStorage({
+  getKey: () => 'draft:admin:category-row',
+  getSnapshot: () => JSON.stringify(editing.value),
+  restore: (raw) => {
+    try {
+      const s = JSON.parse(raw) as EditingState | null
+      if (s && (s.mode === 'add' || s.mode === 'edit')) editing.value = s
+    } catch {
+      // 草稿损坏时忽略
+    }
+  }
+})
+
+watch(editing, (v) => {
+  if (!v) editDraft.clear()
+})
 
 function isEditing(cat: CategoryNode): boolean {
   return editing.value?.mode === 'edit' && editing.value.target?.id === cat.id
@@ -168,6 +187,7 @@ async function save() {
       })
     }
     ElMessage.success('保存成功')
+    editDraft.clear()
     editing.value = null
     await categoryStore.fetchTree(true)
   } catch {
@@ -198,6 +218,9 @@ async function remove(cat: CategoryNode) {
 
 onMounted(() => {
   categoryStore.fetchTree(true)
+  if (editDraft.restoreNow()) {
+    ElMessage.info('已恢复上次未保存的输入')
+  }
 })
 </script>
 
@@ -218,7 +241,7 @@ onMounted(() => {
 
 .section-title {
   margin: 0;
-  color: #f0c674;
+  color: var(--app-title-accent);
 }
 
 .empty-tip {

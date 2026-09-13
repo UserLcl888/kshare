@@ -120,8 +120,9 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useDraftStorage } from '@/composables/useDraft'
 import {
   approveAccessApi,
   deleteAccessApi,
@@ -180,6 +181,29 @@ const replyDetail = ref<AccessApplyItem | null>(null)
 const replyContent = ref('')
 const replying = ref(false)
 
+// 回复内容先存草稿（sessionStorage）：刷新后自动带回来
+let restoredReply: { id: number; content: string } | null = null
+const replyDraft = useDraftStorage({
+  getKey: () => 'draft:admin:access-reply',
+  getSnapshot: () =>
+    JSON.stringify({ id: replyDetail.value?.id || 0, content: replyContent.value }),
+  restore: (raw) => {
+    try {
+      const s = JSON.parse(raw) as { id?: number; content?: string }
+      const id = Number(s.id) || 0
+      if (id && String(s.content || '').trim()) {
+        restoredReply = { id, content: String(s.content) }
+      }
+    } catch {
+      // 草稿损坏时忽略
+    }
+  }
+})
+
+watch(replyVisible, (v) => {
+  if (!v) replyDraft.clear()
+})
+
 async function openReply(id: number) {
   replyDetail.value = await getAdminAccessDetailApi(id)
   replyContent.value = ''
@@ -196,6 +220,7 @@ async function submitReply() {
   try {
     await replyAccessApi(replyDetail.value.id, replyContent.value.trim())
     ElMessage.success('回复已发送，申请人将在通知中看到')
+    replyDraft.clear()
     replyContent.value = ''
     replyVisible.value = false
     load()
@@ -257,7 +282,14 @@ async function remove(row: AccessApplyItem) {
   load()
 }
 
-onMounted(load)
+onMounted(async () => {
+  load()
+  if (replyDraft.restoreNow() && restoredReply) {
+    await openReply(restoredReply.id)
+    replyContent.value = restoredReply.content
+    ElMessage.info('已恢复上次未发送的回复内容')
+  }
+})
 </script>
 
 <style scoped>
@@ -270,7 +302,7 @@ onMounted(load)
 
 .section-title {
   margin: 0 0 16px;
-  color: #f0c674;
+  color: var(--app-title-accent);
 }
 
 .filters {

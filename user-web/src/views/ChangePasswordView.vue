@@ -186,7 +186,7 @@ async function submit() {
 
 .section-title {
   margin: 0 0 10px;
-  color: #e9b862;
+  color: var(--app-title-accent);
 }
 
 .pwd-card {

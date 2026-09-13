@@ -115,6 +115,7 @@ import { Iphone, Key, Lock, Message } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import AuthLayout from '@/components/auth/AuthLayout.vue'
 import VerifyCodeButton from '@/components/common/VerifyCodeButton.vue'
+import { useDraftStorage } from '@/composables/useDraft'
 
 const router = useRouter()
 const route = useRoute()
@@ -125,6 +126,33 @@ const loading = ref(false)
 const loginType = ref<'email' | 'phone'>('email')
 const emailMode = ref<'password' | 'code'>('password')
 const form = reactive({ account: '', password: '', code: '' })
+
+/**
+ * 登录页只记「账号」这一个字段，其它一律不存：
+ * - 不存密码、验证码（安全）
+ * - 不存登录方式（邮箱/手机、密码/验证码）—— 这是页面交互状态，刷新后回到默认更自然，也没必要占存储
+ * 存储用 sessionStorage：刷新不丢，关掉标签页自动清空，不长期残留。
+ */
+const accountDraft = useDraftStorage({
+  getKey: () => 'draft:login:account',
+  getSnapshot: () => form.account,
+  restore: (raw) => {
+    // 兼容早期存过 JSON 的格式
+    if (raw.startsWith('{')) {
+      try {
+        const s = JSON.parse(raw) as { account?: string }
+        form.account = typeof s.account === 'string' ? s.account : ''
+        return
+      } catch {
+        return
+      }
+    }
+    form.account = raw
+  }
+})
+
+// 先恢复上次填写的内容
+accountDraft.restoreNow()
 
 // 注册成功跳转回来时，按注册类型选中对应 Tab、回填账号，并预选验证码登录方式
 const queryType = String(route.query.type || '')

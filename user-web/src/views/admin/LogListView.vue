@@ -73,7 +73,7 @@ onMounted(load)
 
 .section-title {
   margin: 0;
-  color: #f0c674;
+  color: var(--app-title-accent);
 }
 
 .pager {

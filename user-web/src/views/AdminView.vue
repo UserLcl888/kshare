@@ -257,9 +257,9 @@ const draftKey = computed(() =>
   isEdit.value ? `draft:article:edit:${editingSlug.value}` : 'draft:article:create'
 )
 
-/** 草稿快照：额外包含粘贴图片（pasteImages），否则刷新后 `paste://` 占位符会变成死链 */
-function draftSnapshot(): string {
-  return JSON.stringify({
+/** 草稿内容（不含粘贴图片）。 */
+function draftPayload(): Record<string, unknown> {
+  return {
     title: form.title,
     slug: form.slug,
     summary: form.summary,
@@ -272,9 +272,18 @@ function draftSnapshot(): string {
     coverUrl: form.coverUrl,
     coverThumbUrl: form.coverThumbUrl,
     tagsText: form.tagsText,
-    content: form.content,
-    pasteImages: { ...pasteImages }
-  })
+    content: form.content
+  }
+}
+
+/** 草稿快照：额外包含粘贴图片（pasteImages），否则刷新后 `paste://` 占位符会变成死链 */
+function draftSnapshot(): string {
+  return JSON.stringify({ ...draftPayload(), pasteImages: { ...pasteImages } })
+}
+
+/** 文本部分（体积小，几乎不会超配额）：粘贴图片过大导致整份存不下时用它兜底 */
+function draftSnapshotLite(): string {
+  return JSON.stringify(draftPayload())
 }
 
 function draftRestore(raw: string) {
@@ -304,6 +313,7 @@ function draftRestore(raw: string) {
 const draft = useDraftStorage({
   getKey: () => draftKey.value,
   getSnapshot: draftSnapshot,
+  getFallbackSnapshot: draftSnapshotLite,
   restore: draftRestore
 })
 
@@ -690,7 +700,7 @@ async function submit(after: 'list' | 'view' = 'list') {
 
 .cover-tip {
   font-size: 11px;
-  color: #68788f;
+  color: var(--app-text-secondary);
 }
 
 .cover-remove {
@@ -711,7 +721,7 @@ async function submit(after: 'list' | 'view' = 'list') {
 
 .section-title {
   margin: 0 0 18px;
-  color: #e9b862;
+  color: var(--app-title-accent);
 }
 
 .content-editor {

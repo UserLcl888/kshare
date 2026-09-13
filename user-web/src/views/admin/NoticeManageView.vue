@@ -47,9 +47,10 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { createNoticeApi, deleteNoticeApi, getAdminNoticesApi, updateNoticeApi } from '@/api/notice'
+import { useDraftStorage } from '@/composables/useDraft'
 import type { NoticeItem } from '@/types'
 
 const list = ref<NoticeItem[]>([])
@@ -59,6 +60,27 @@ const saving = ref(false)
 const isEdit = ref(false)
 const editId = ref(0)
 const form = reactive({ content: '', sortOrder: 0, status: 1 })
+
+// 公告内容的输入先存草稿（sessionStorage，关标签页即清空；提交/取消也会立刻清掉）
+const draft = useDraftStorage({
+  getKey: () => 'draft:admin:notice',
+  getSnapshot: () =>
+    JSON.stringify({ content: form.content, sortOrder: form.sortOrder, status: form.status }),
+  restore: (raw) => {
+    try {
+      const s = JSON.parse(raw) as { content?: string; sortOrder?: number; status?: number }
+      if (typeof s.content === 'string') form.content = s.content
+      if (typeof s.sortOrder === 'number') form.sortOrder = s.sortOrder
+      form.status = s.status === 0 ? 0 : 1
+    } catch {
+      // 草稿损坏时忽略
+    }
+  }
+})
+
+watch(visible, (v) => {
+  if (!v) draft.clear()
+})
 
 async function load() {
   loading.value = true
@@ -108,6 +130,7 @@ async function submit() {
       await createNoticeApi(payload)
       ElMessage.success('新增成功')
     }
+    draft.clear()
     visible.value = false
     load()
   } catch {
@@ -136,7 +159,13 @@ async function remove(row: NoticeItem) {
   }
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  if (draft.restoreNow()) {
+    visible.value = true
+    ElMessage.info('已恢复上次未保存的输入')
+  }
+})
 </script>
 
 <style scoped>
@@ -156,7 +185,7 @@ onMounted(load)
 
 .section-title {
   margin: 0;
-  color: #f0c674;
+  color: var(--app-title-accent);
 }
 
 .empty-tip {

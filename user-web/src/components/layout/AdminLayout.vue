@@ -124,7 +124,7 @@ async function logout() {
 .brand-main {
   font-size: 16px;
   font-weight: 700;
-  color: #e9b862;
+  color: var(--app-title-accent);
   white-space: nowrap;
 }
 
@@ -149,7 +149,7 @@ async function logout() {
 
 .admin-nav-item:hover {
   background: var(--app-accent-soft);
-  color: #e9b862;
+  color: var(--app-title-accent);
 }
 
 .admin-nav-item.active {

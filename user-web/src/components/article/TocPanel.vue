@@ -75,7 +75,7 @@ function scrollTo(id: string) {
   display: block;
   padding: 6px 8px;
   font-size: 13px;
-  color: #b8c0cf;
+  color: var(--app-text-body);
   border-radius: 5px;
   line-height: 1.5;
   transition: all 0.15s;

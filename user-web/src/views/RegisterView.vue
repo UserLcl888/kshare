@@ -126,18 +126,16 @@ const emailValid = computed(() => emailPattern.test(form.account.trim()))
 // 输入完整 6 位验证码后，再显示自定义密码
 const codeFilled = computed(() => /^\d{6}$/.test(form.code))
 
-/** 草稿只保存账号/邮箱、昵称与注册方式，绝不保存密码与验证码 */
+/** 草稿只保存账号/邮箱与昵称（注册方式属于页面交互状态，刷新回默认），绝不保存密码与验证码 */
 const draft = useDraftStorage({
   getKey: () => 'draft:register',
   getSnapshot: () =>
     JSON.stringify({
-      registerType: registerType.value,
       account: form.account,
       nickname: form.nickname
     }),
   restore: (raw) => {
     const s = JSON.parse(raw) as Record<string, unknown>
-    if (s.registerType === 'email' || s.registerType === 'phone') registerType.value = s.registerType
     if (typeof s.account === 'string') form.account = s.account
     if (typeof s.nickname === 'string') form.nickname = s.nickname
   }

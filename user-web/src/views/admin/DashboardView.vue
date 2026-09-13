@@ -214,7 +214,7 @@ onBeforeUnmount(() => {
   margin-top: 4px;
   font-size: 24px;
   font-weight: 700;
-  color: #f0c674;
+  color: var(--app-title-accent);
 }
 
 .dashboard-main {
@@ -262,7 +262,7 @@ onBeforeUnmount(() => {
 
 .section-title {
   margin: 0 0 8px;
-  color: #f0c674;
+  color: var(--app-title-accent);
   font-size: 15px;
 }
 

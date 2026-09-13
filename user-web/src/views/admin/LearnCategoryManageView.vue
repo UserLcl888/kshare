@@ -68,8 +68,9 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useDraftStorage } from '@/composables/useDraft'
 import {
   createAdminLearnCategoryApi,
   deleteAdminLearnCategoryApi,
@@ -90,6 +91,39 @@ const saving = ref(false)
 const isEdit = ref(false)
 const editId = ref(0)
 const form = reactive({ name: '', slug: '', sortOrder: 0, coverUrl: '', coverThumbUrl: '' })
+
+// 新增/编辑分类的输入先存草稿（sessionStorage），刷新后自动恢复并重新打开弹窗
+const draft = useDraftStorage({
+  getKey: () => 'draft:admin:learn-category',
+  getSnapshot: () =>
+    JSON.stringify({
+      isEdit: isEdit.value,
+      editId: editId.value,
+      name: form.name,
+      slug: form.slug,
+      sortOrder: form.sortOrder,
+      coverUrl: form.coverUrl,
+      coverThumbUrl: form.coverThumbUrl
+    }),
+  restore: (raw) => {
+    try {
+      const s = JSON.parse(raw) as Record<string, unknown>
+      isEdit.value = s.isEdit === true
+      editId.value = Number(s.editId) || 0
+      form.name = typeof s.name === 'string' ? s.name : ''
+      form.slug = typeof s.slug === 'string' ? s.slug : ''
+      form.sortOrder = typeof s.sortOrder === 'number' ? s.sortOrder : 0
+      form.coverUrl = typeof s.coverUrl === 'string' ? s.coverUrl : ''
+      form.coverThumbUrl = typeof s.coverThumbUrl === 'string' ? s.coverThumbUrl : ''
+    } catch {
+      // 草稿损坏时忽略
+    }
+  }
+})
+
+watch(visible, (v) => {
+  if (!v) draft.clear()
+})
 
 async function load() {
   loading.value = true
@@ -242,6 +276,7 @@ async function submit() {
       })
       ElMessage.success('创建成功')
     }
+    draft.clear()
     visible.value = false
     load()
   } catch {
@@ -270,7 +305,13 @@ async function remove(row: LearnCategory) {
   }
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  if (draft.restoreNow()) {
+    visible.value = true
+    ElMessage.info('已恢复上次未保存的输入')
+  }
+})
 </script>
 
 <style scoped>
@@ -290,7 +331,7 @@ onMounted(load)
 
 .section-title {
   margin: 0;
-  color: #f0c674;
+  color: var(--app-title-accent);
 }
 
 .cover-field {

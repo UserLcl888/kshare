@@ -199,7 +199,7 @@ onMounted(async () => {
   z-index: 2;
   font-size: 11px;
   letter-spacing: 5px;
-  color: #e9b862;
+  color: var(--app-title-accent);
 }
 
 .learn-info {

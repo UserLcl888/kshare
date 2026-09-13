@@ -10,11 +10,34 @@ import './styles/theme.css'
 import { enableImageLightbox } from './utils/lightbox'
 import { enableBodyLinkHandler, enableCodeCopy } from './utils/markdown'
 import { attachScrollMemory } from './utils/scroll'
+import { useTheme } from './composables/useTheme'
+
+/**
+ * 清理历史版本遗留在浏览器里的无用键（功能已移除 / 旧格式）。
+ * 只在启动时跑一次，避免这些数据一直占着存储。
+ */
+function cleanupObsoleteStorage(): void {
+  try {
+    // 已移除的功能：编辑用户弹窗的草稿
+    sessionStorage.removeItem('draft:admin:user-edit')
+    // 旧的滚动位置写法（现在统一用 scroll-pos:<路由>）
+    for (let i = sessionStorage.length - 1; i >= 0; i--) {
+      const key = sessionStorage.key(i)
+      if (key && key.startsWith('scroll-pos/')) sessionStorage.removeItem(key)
+    }
+  } catch {
+    // 存储不可用时忽略
+  }
+}
+
+cleanupObsoleteStorage()
 
 const app = createApp(App)
 app.use(createPinia())
 app.use(router)
 app.use(ElementPlus, { locale: zhCn })
+// 挂载前先应用一次用户上次选择的主题：避免首屏先闪一下默认主题
+useTheme().initTheme()
 app.mount('#app')
 enableImageLightbox()
 // 全局统一处理正文 Markdown 链接：站内 SPA、外链新标签页（当前页不变）

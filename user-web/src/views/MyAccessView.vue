@@ -110,7 +110,7 @@ onMounted(async () => {
 
 .section-title {
   margin: 0 0 16px;
-  color: #e9b862;
+  color: var(--app-title-accent);
 }
 
 .sub-text {

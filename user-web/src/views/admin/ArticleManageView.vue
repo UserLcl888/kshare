@@ -284,7 +284,7 @@ onMounted(async () => {
 
 .section-title {
   margin: 0 0 16px;
-  color: #f0c674;
+  color: var(--app-title-accent);
 }
 
 .filters {

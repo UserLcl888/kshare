@@ -23,9 +23,18 @@
   --app-title-accent: #e9b862;   /* 卡片小标题、统计数字 */
   --app-text-body: #b8c0cf;      /* 正文次要文本 */
   --app-on-accent: #141a26;      /* 强调色底上的文字 */
-  --app-brand-color: #e9b862;    /* 站名 */
+  --app-brand-color: var(--app-title-accent);    /* 站名 */
   --app-brand-glow: rgba(232, 154, 31, 0.35);
   --app-brand-shimmer: linear-gradient(90deg, transparent 0%, #fff 45%, #ffe9c4 50%, #fff 55%, transparent 100%);
+
+  /* 表格配色（Element Plus 覆盖用，随主题变化） */
+  --app-table-border: #232c3d;
+  --app-table-head-bg: #131926;
+  --app-table-row-bg: #141a26;
+  --app-table-stripe-bg: #121824;
+  --app-table-row-hover: #1a2231;
+  --app-table-head-text: #c2cad8;
+  --app-table-text: #d7dde7;
 
   --brand-width: 148px;   /* Logo + 站点名宽度 */
   --header-gap: 28px;     /* Logo 与导航的间距 */
@@ -158,6 +167,15 @@ html[data-theme='white'] {
   --app-brand-glow: rgba(176, 116, 10, 0.16);
   --app-brand-shimmer: linear-gradient(90deg, transparent 0%, rgba(176, 116, 10, 0.28) 45%, #d9a716 50%, rgba(176, 116, 10, 0.28) 55%, transparent 100%);
 
+  /* 米白主题下的表格：浅底 + 深字，避免整块发黑 */
+  --app-table-border: #e7e1d5;
+  --app-table-head-bg: #f2eee4;
+  --app-table-row-bg: #fffdf8;
+  --app-table-stripe-bg: #faf7f0;
+  --app-table-row-hover: #f2eee4;
+  --app-table-head-text: #4b5563;
+  --app-table-text: #374151;
+
   --el-color-primary: #b0740a;
   --el-color-primary-light-3: #b98c3e;
   --el-color-primary-light-5: #cfa871;
@@ -194,6 +212,9 @@ html[data-theme='white'] {
   --el-disabled-text-color: #b6bcc6;
   --el-disabled-border-color: #e9e4da;
   --el-message-bg-color: #fffdf8;
+  /* 标签（info 类型）的浅底：默认沿用暗色值，浅色主题下必须换掉，否则会出现"深蓝色小块" */
+  --el-color-info-light-9: #f2eee4;
+  --el-color-info-light-8: #e9e4da;
 }
 
 /* 白色模式下 Element Plus 弹层改浅色（覆盖顶部对暗色的统一覆盖） */
@@ -291,12 +312,14 @@ a {
 
 .el-input__wrapper.is-focus,
 .el-select__wrapper.is-focused {
-  box-shadow: 0 0 0 1px var(--app-accent) inset !important;
+  box-shadow: 0 0 0 1px var(--app-input-focus, var(--app-accent)) inset !important;
 }
 
 .el-input__inner,
 .el-textarea__inner {
-  color: var(--app-text) !important;
+  /* 允许局部覆盖（登录/注册页固定暗色外观，见 AuthLayout.vue） */
+  color: var(--app-input-text, var(--app-text)) !important;
+  caret-color: var(--app-input-focus, var(--app-accent));
 }
 
 .el-input__inner::placeholder,
@@ -310,58 +333,58 @@ a {
 }
 
 .el-table {
-  --el-table-border-color: #232c3d;
-  --el-table-header-bg-color: #131926;
-  --el-table-row-hover-bg-color: #1a2231;
-  --el-table-bg-color: #141a26;
-  --el-table-tr-bg-color: #141a26;
-  --el-table-header-text-color: #c2cad8;
-  --el-table-text-color: #d7dde7;
+  --el-table-border-color: var(--app-table-border);
+  --el-table-header-bg-color: var(--app-table-head-bg);
+  --el-table-row-hover-bg-color: var(--app-table-row-hover);
+  --el-table-bg-color: var(--app-table-row-bg);
+  --el-table-tr-bg-color: var(--app-table-row-bg);
+  --el-table-header-text-color: var(--app-table-head-text);
+  --el-table-text-color: var(--app-table-text);
 }
 
 .el-table th.el-table__cell {
-  background: #131926 !important;
+  background: var(--app-table-head-bg) !important;
 }
 
 .el-table .el-table__row--striped td.el-table__cell {
-  background: #121824 !important;
+  background: var(--app-table-stripe-bg) !important;
 }
 
 .el-pagination {
   --el-pagination-bg-color: transparent;
 }
 
-/* 暗色消息/通知弹层 */
+/* 消息 / 通知 / 确认框：跟随主题 */
 .el-message {
-  background: #1b2332 !important;
-  border-color: #2a3344 !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+  background: var(--app-card) !important;
+  border-color: var(--app-border) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25) !important;
 }
 
 .el-message .el-message__content {
-  color: #e8ecf3 !important;
+  color: var(--app-text) !important;
 }
 
 .el-notification {
-  background: #1b2332 !important;
-  border-color: #2a3344 !important;
+  background: var(--app-card) !important;
+  border-color: var(--app-border) !important;
 }
 
 .el-notification__title {
-  color: #e8ecf3 !important;
+  color: var(--app-text) !important;
 }
 
 .el-notification__content {
-  color: #c2cad8 !important;
+  color: var(--app-text-secondary) !important;
 }
 
 .el-message-box {
-  background: #1b2332 !important;
+  background: var(--app-card) !important;
 }
 
 .el-message-box__title,
 .el-message-box__message {
-  color: #e8ecf3 !important;
+  color: var(--app-text) !important;
 }
 
 .page-container {
@@ -642,7 +665,7 @@ html[data-theme='white'] {
   border-left: 4px solid var(--app-accent);
   background: var(--app-accent-soft);
   border-radius: 0 6px 6px 0;
-  color: #e9b862;
+  color: var(--app-title-accent);
 }
 
 .article-body a {

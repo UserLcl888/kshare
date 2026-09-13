@@ -379,7 +379,7 @@ async function onCommand(command: string) {
 }
 .nav-item:hover {
   background: var(--app-accent-soft);
-  color: #e9b862;
+  color: var(--app-title-accent);
 }
 .nav-item.active {
   background: var(--app-accent-soft);
@@ -475,7 +475,7 @@ async function onCommand(command: string) {
 .notif-title {
   font-size: 14px;
   font-weight: 600;
-  color: #e9b862;
+  color: var(--app-title-accent);
 }
 .notif-list {
   max-height: 320px;
@@ -541,7 +541,7 @@ async function onCommand(command: string) {
 .header-btn.primary {
   background: var(--app-accent);
   border-color: var(--app-accent);
-  color: #141a26;
+  color: var(--app-on-accent);
 }
 .header-btn.primary:hover {
   background: var(--el-color-primary-dark-2);

@@ -134,8 +134,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
+import { useDraftStorage } from '@/composables/useDraft'
 import {
   getAdminUsersApi,
   createAdminUserApi,
@@ -165,6 +166,33 @@ const resetRef = ref<FormInstance>()
 const createForm = reactive({ email: '', phone: '', password: '', nickname: '', role: 'USER' })
 const editForm = reactive({ id: 0, nickname: '', email: '', role: 'USER' })
 const resetForm = reactive({ id: 0, newPassword: '' })
+
+// 新增/编辑用户的输入先存草稿（sessionStorage）；密码类字段一律不入草稿
+const createDraft = useDraftStorage({
+  getKey: () => 'draft:admin:user-create',
+  getSnapshot: () =>
+    JSON.stringify({
+      email: createForm.email,
+      phone: createForm.phone,
+      nickname: createForm.nickname,
+      role: createForm.role
+    }),
+  restore: (raw) => {
+    try {
+      const s = JSON.parse(raw) as Record<string, unknown>
+      createForm.email = typeof s.email === 'string' ? s.email : ''
+      createForm.phone = typeof s.phone === 'string' ? s.phone : ''
+      createForm.nickname = typeof s.nickname === 'string' ? s.nickname : ''
+      createForm.role = s.role === 'ADMIN' ? 'ADMIN' : 'USER'
+    } catch {
+      // 草稿损坏时忽略
+    }
+  }
+})
+
+watch(createVisible, (v) => {
+  if (!v) createDraft.clear()
+})
 
 const emailPattern = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/
 const phonePattern = /^1[3-9]\d{9}$/
@@ -253,6 +281,7 @@ async function submitCreate() {
       role: createForm.role
     })
     ElMessage.success('创建成功')
+    createDraft.clear()
     createVisible.value = false
     reload()
   } catch {
@@ -346,7 +375,14 @@ async function remove(row: UserInfo) {
   }
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  // 刷新后如果还有未提交的"新增用户"输入，自动恢复并重新打开弹窗
+  if (createDraft.restoreNow()) {
+    createVisible.value = true
+    ElMessage.info('已恢复上次未保存的输入')
+  }
+})
 </script>
 
 <style scoped>
@@ -366,7 +402,7 @@ onMounted(load)
 
 .section-title {
   margin: 0;
-  color: #f0c674;
+  color: var(--app-title-accent);
 }
 
 .filters {

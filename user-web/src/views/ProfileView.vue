@@ -97,8 +97,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { useDraftStorage } from '@/composables/useDraft'
 import { EditPen, Lock, Tickets } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { updateNicknameApi, updateAvatarApi } from '@/api/auth'
@@ -118,8 +119,30 @@ const nickRules: FormRules = {
   nickname: [{ required: true, message: '请输入昵称', trigger: 'blur' }]
 }
 
+// 修改昵称的输入先存草稿（sessionStorage）：刷新后自动恢复并重新打开弹窗
+const nickDraft = useDraftStorage({
+  getKey: () => 'draft:profile:nickname',
+  getSnapshot: () => JSON.stringify({ nickname: nickForm.nickname }),
+  restore: (raw) => {
+    try {
+      const s = JSON.parse(raw) as { nickname?: string }
+      if (typeof s.nickname === 'string') nickForm.nickname = s.nickname
+    } catch {
+      // 草稿损坏时忽略
+    }
+  }
+})
+
+watch(nickDialogVisible, (v) => {
+  if (!v) nickDraft.clear()
+})
+
 onMounted(() => {
   if (!auth.userInfo) auth.fetchProfile()
+  if (nickDraft.restoreNow()) {
+    nickDialogVisible.value = true
+    ElMessage.info('已恢复上次未保存的昵称')
+  }
 })
 
 function openNickDialog() {
@@ -185,6 +208,7 @@ async function saveNickname() {
     await updateNicknameApi(nickForm.nickname.trim())
     await auth.fetchProfile()
     ElMessage.success('昵称修改成功')
+    nickDraft.clear()
     nickDialogVisible.value = false
   } catch (e) {
     // 错误提示由请求拦截器统一处理
@@ -219,7 +243,7 @@ async function saveNickname() {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #e9b862;
+  color: var(--app-title-accent);
 }
 
 .section-title::before {
@@ -394,7 +418,7 @@ async function saveNickname() {
 
 .btn-main {
   background: linear-gradient(135deg, #f7bf4d, #f0a82c);
-  color: #141a26;
+  color: var(--app-on-accent);
   box-shadow: 0 4px 14px rgba(232, 154, 31, 0.3);
 }
 
