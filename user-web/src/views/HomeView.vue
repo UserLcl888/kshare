@@ -108,9 +108,10 @@ import { useCategoryStore } from '@/stores/category'
 import { useAuthStore } from '@/stores/auth'
 import { getHomeOverviewApi, getHomeQuoteApi, type HomeOverview } from '@/api/home'
 import { usePolling } from '@/composables/usePolling'
-import { CAROUSEL_BANNERS } from '@/config/site'
+import { CAROUSEL_BANNERS, CAROUSEL_BANNERS_LIGHT } from '@/config/site'
 import { getNoticesApi } from '@/api/notice'
 import type { NoticeItem } from '@/types'
+import { useTheme } from '@/composables/useTheme'
 
 const categoryStore = useCategoryStore()
 const auth = useAuthStore()
@@ -131,7 +132,9 @@ const visibleCategories = computed(() => categories.value.slice(0, GRID_COLUMNS 
 const quote = ref({ text: '每一天都是新的开始，加油！', author: '每日一句' })
 const notices = ref<NoticeItem[]>([])
 
-const banners = CAROUSEL_BANNERS
+// 米白（浅色）主题用另一组轮播图，其它主题沿用原来的
+const { theme } = useTheme()
+const banners = computed(() => (theme.value === 'white' ? CAROUSEL_BANNERS_LIGHT : CAROUSEL_BANNERS))
 
 const bannerHeight = ref(330)
 function updateBannerHeight() {
@@ -342,7 +345,9 @@ usePolling(loadNotices, 20000)
   border-radius: 14px;
   overflow: hidden;
   margin-bottom: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  /* 外框随主题：暗色主题是深色投影，米白主题是细边 + 淡投影 */
+  border: 1px solid var(--app-banner-border);
+  box-shadow: var(--app-banner-shadow);
 }
 
 .notice-bar {
@@ -424,7 +429,7 @@ usePolling(loadNotices, 20000)
   height: 100%;
   border-radius: 14px;
   overflow: hidden;
-  background: linear-gradient(120deg, #0c111c 0%, #090d16 55%, #05080f 100%);
+  background: var(--app-banner-bg);
 }
 
 .banner-img {

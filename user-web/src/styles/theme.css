@@ -36,6 +36,11 @@
   --app-table-head-text: #c2cad8;
   --app-table-text: #d7dde7;
 
+  /* 首页轮播图外框：随主题变化 */
+  --app-banner-border: rgba(255, 255, 255, 0.08);
+  --app-banner-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --app-banner-bg: linear-gradient(120deg, #0c111c 0%, #090d16 55%, #05080f 100%);
+
   --brand-width: 148px;   /* Logo + 站点名宽度 */
   --header-gap: 28px;     /* Logo 与导航的间距 */
   --layout-pad-x: 24px;   /* 页面左右边距 */
@@ -175,6 +180,11 @@ html[data-theme='white'] {
   --app-table-row-hover: #f2eee4;
   --app-table-head-text: #4b5563;
   --app-table-text: #374151;
+
+  /* 米白主题下的轮播图外框：细边框 + 很淡的投影 + 暖白底，避免"一块白"突兀 */
+  --app-banner-border: #e7e1d5;
+  --app-banner-shadow: 0 6px 18px rgba(120, 100, 60, 0.12);
+  --app-banner-bg: #fffdf8;
 
   --el-color-primary: #b0740a;
   --el-color-primary-light-3: #b98c3e;
