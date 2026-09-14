@@ -5,8 +5,11 @@ import com.interview.common.Result;
 import com.interview.dto.Requests;
 import com.interview.dto.VOs;
 import com.interview.service.AuthService;
+import com.interview.service.MarkdownService;
 import com.interview.service.UserUploadService;
 import lombok.RequiredArgsConstructor;
+import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,6 +28,7 @@ public class UserUploadController {
 
     private final UserUploadService userUploadService;
     private final AuthService authService;
+    private final MarkdownService markdownService;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Result<VOs.UserUploadListItemVO> create(
@@ -44,6 +48,21 @@ public class UserUploadController {
             @RequestParam(value = "page", defaultValue = "1") long page,
             @RequestParam(value = "size", defaultValue = "10") long size) {
         return Result.ok(userUploadService.myList(authService.currentUser().getId(), page, size));
+    }
+
+    /** 今日投稿额度：{limit, used, remaining}，供前端做精细提示。 */
+    @GetMapping("/quota")
+    public Result<java.util.Map<String, Integer>> quota() {
+        return Result.ok(userUploadService.dailyQuota(authService.currentUser().getId()));
+    }
+
+    /**
+     * 投稿前的 Markdown 预览：与正文同一套解析 + 消毒规则，保证预览与发布后效果一致。
+     * 只渲染不落库（图片不搬运，仍是原文里的地址）。
+     */
+    @PostMapping("/preview")
+    public Result<VOs.MarkdownPreviewVO> preview(@Valid @RequestBody Requests.MarkdownPreviewDTO dto) {
+        return Result.ok(markdownService.preview(dto.getContentMd()));
     }
 
     @GetMapping("/{id}")

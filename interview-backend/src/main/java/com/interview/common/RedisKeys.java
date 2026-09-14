@@ -27,6 +27,21 @@ public final class RedisKeys {
         return "rate:login:" + account;
     }
 
+    /** 登录失败累计次数（24 小时窗口）：用于阶梯式冷却判定。 */
+    public static String loginFail(String account) {
+        return "login:fail:" + account;
+    }
+
+    /** 登录冷却标记：存在即处于冷却中，TTL 即剩余冷却时间。 */
+    public static String loginLock(String account) {
+        return "login:lock:" + account;
+    }
+
+    /** 用户投稿：当日已提交篇数（每天上限 3 篇）。 */
+    public static String userUploadDay(Long userId) {
+        return "rate:user-upload:day:" + userId;
+    }
+
     public static String emailCode(String email, String scene) {
         return "code:email:" + email + ":" + scene;
     }

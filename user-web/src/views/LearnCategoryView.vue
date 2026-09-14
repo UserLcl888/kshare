@@ -42,28 +42,22 @@
       </main>
 
       <!-- 右：当前文章目录 -->
-      <aside class="cat-toc">
-        <div class="toc-title">目录</div>
-        <div v-if="!detail || !detail.article.toc.length" class="toc-empty">暂无目录</div>
-        <a
-          v-for="t in detail?.article.toc || []"
-          :key="t.id"
-          class="toc-item"
-          :class="`lv-${t.level}`"
-          href="#"
-          @click.prevent="scrollTo(t.id)"
-        >
-          {{ t.text }}
-        </a>
-      </aside>
+      <!-- 与专题 / 技术页一致：右侧复用同一个目录组件（吸顶 + 独立滚动） -->
+      <TocPanel
+        v-if="detail"
+        :toc="detail.article.toc"
+        :active-id="activeTocId"
+        @select="activeTocId = $event"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import TocPanel from '@/components/article/TocPanel.vue'
 import { getArticleDetail, getLearnArticlesApi, getLearnCategoriesApi } from '@/api/article'
 import { enhanceCodeBlocks, highlightCodeBlocks, renderDiagrams, renderMarkdown } from '@/utils/markdown'
 import type { ArticleDetailResp, ArticleListItem } from '@/types'
@@ -79,6 +73,8 @@ const detail = ref<ArticleDetailResp | null>(null)
 const loadingList = ref(false)
 const loadingDetail = ref(false)
 const contentEl = ref<HTMLElement | null>(null)
+/** 当前高亮的目录项（与专题/技术页同一套逻辑） */
+const activeTocId = ref('')
 
 async function loadList() {
   loadingList.value = true
@@ -108,21 +104,31 @@ async function select(slug: string) {
   loadingDetail.value = true
   try {
     detail.value = await getArticleDetail(slug)
-    await nextTick()
-    if (contentEl.value) {
-      highlightCodeBlocks(contentEl.value)
-      await renderDiagrams(contentEl.value)
-      enhanceCodeBlocks(contentEl.value)
-    }
   } catch {
     detail.value = null
   } finally {
+    // 必须先关掉 loading 再 nextTick：模板里正文是 v-else-if="detail"，
+    // loadingDetail 仍为 true 时 <div ref="contentEl"> 还没进 DOM，
+    // contentEl.value 是 null，下面的高亮 / Mermaid / 复制按钮会被整段跳过。
     loadingDetail.value = false
+  }
+  await nextTick()
+  if (contentEl.value) {
+    highlightCodeBlocks(contentEl.value)
+    await renderDiagrams(contentEl.value)
+    enhanceCodeBlocks(contentEl.value)
   }
 }
 
-function scrollTo(id: string) {
-  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+/** 滚动时高亮当前章节，和专题/技术页保持一致 */
+function onScroll() {
+  if (!detail.value) return
+  let current = detail.value.article.toc[0]?.id || ''
+  for (const item of detail.value.article.toc) {
+    const el = document.getElementById(item.id)
+    if (el && el.getBoundingClientRect().top <= 90) current = item.id
+  }
+  activeTocId.value = current
 }
 
 watch(categorySlug, () => {
@@ -130,6 +136,14 @@ watch(categorySlug, () => {
   detail.value = null
   loadList()
 }, { immediate: true })
+
+onMounted(() => {
+  window.addEventListener('scroll', onScroll, { passive: true })
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', onScroll)
+})
 </script>
 
 <style scoped>
@@ -142,12 +156,13 @@ watch(categorySlug, () => {
 .learn-cat-body {
   flex: 1;
   width: 100%;
-  max-width: 1280px;
+  /* 与专题/技术页同一套三栏布局：左侧留出侧栏偏移，右侧目录用 TocPanel */
+  max-width: none;
   margin: 0 auto;
-  padding: 24px 24px 40px;
+  padding: 16px var(--layout-pad-x) 16px var(--sidebar-offset);
   display: flex;
   align-items: flex-start;
-  gap: 20px;
+  gap: 18px;
 }
 
 /* 左：文章列表，无滚动条，随页面滑动 */
@@ -252,58 +267,12 @@ watch(categorySlug, () => {
   font-size: 14px;
 }
 
-/* 右：目录 */
-.cat-toc {
-  width: 220px;
-  flex-shrink: 0;
-}
-
-.toc-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--app-accent);
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--app-border);
-  margin-bottom: 8px;
-}
-
-.toc-empty {
-  padding: 10px;
-  font-size: 13px;
-  color: var(--app-text-secondary);
-}
-
-.toc-item {
-  display: block;
-  padding: 6px 10px;
-  border-radius: 6px;
-  font-size: 13px;
-  color: var(--app-text);
-  line-height: 1.5;
-  transition: background 0.15s, color 0.15s;
-}
-
-.toc-item:hover {
-  background: var(--app-accent-soft);
-  color: var(--app-accent);
-}
-
-.toc-item.lv-2 {
-  padding-left: 18px;
-}
-
-.toc-item.lv-3 {
-  padding-left: 28px;
-  font-size: 12.5px;
-}
-
 @media (max-width: 980px) {
   .learn-cat-body {
     flex-direction: column;
   }
 
-  .cat-list,
-  .cat-toc {
+  .cat-list {
     width: 100%;
   }
 }

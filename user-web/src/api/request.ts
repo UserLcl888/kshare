@@ -3,6 +3,13 @@ import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import router from '@/router'
 
+declare module 'axios' {
+  export interface AxiosRequestConfig {
+    /** 静默失败：不在拦截器里弹全局错误提示，由调用方自行兜底（如预览接口回退到本地渲染） */
+    skipErrorToast?: boolean
+  }
+}
+
 const request = axios.create({
   baseURL: '/api',
   timeout: 15000
@@ -22,7 +29,9 @@ request.interceptors.response.use(
     if (body && body.code === 200) {
       return body.data
     }
-    ElMessage.error(body?.message || '请求失败')
+    if (!resp.config?.skipErrorToast) {
+      ElMessage.error(body?.message || '请求失败')
+    }
     return Promise.reject(new Error(body?.message || '请求失败'))
   },
   (error) => {
@@ -36,7 +45,7 @@ request.interceptors.response.use(
     } else {
       const message = error.response?.data?.message || '网络错误，请稍后重试'
       // 40301=受限内容未授权，页面自行渲染“需申请访问”，不弹通用错误
-      if (error.response?.data?.code !== 40301) {
+      if (error.response?.data?.code !== 40301 && !error.config?.skipErrorToast) {
         ElMessage.error(message)
       }
       const err = new Error(message) as Error & { code?: number }

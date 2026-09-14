@@ -230,4 +230,11 @@ public class Requests {
         private String remark;
     }
 
+    /** Markdown 预览入参：直接给正文原文，服务端按正文同一套规则渲染。 */
+    @Data
+    public static class MarkdownPreviewDTO {
+        @Size(max = 6000000, message = "内容过长，无法预览（请分段检查）")
+        private String contentMd;
+    }
+
 }

@@ -46,7 +46,8 @@ public class MarkdownImageService {
             Pattern.compile("^data:image/(png|jpe?g|gif|webp);base64,(.+)$", Pattern.DOTALL);
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("yyyy/MM/dd");
     private static final Set<String> ALLOWED_EXT = Set.of("png", "jpg", "jpeg", "gif", "webp");
-    private static final Set<String> ALLOWED_DIR = Set.of("article", "upload", "image", "cover", "banner", "avatar");
+    private static final Set<String> ALLOWED_DIR =
+            Set.of("article", "user-upload", "image", "cover", "banner", "avatar");
     private static final Map<String, String> CONTENT_TYPE = Map.of(
             "png", "image/png",
             "jpg", "image/jpeg",

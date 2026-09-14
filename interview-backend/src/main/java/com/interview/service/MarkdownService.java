@@ -23,16 +23,22 @@ import java.util.regex.Pattern;
 @Service
 public class MarkdownService {
 
-    private static final Pattern H_PATTERN = Pattern.compile("<h([1-6])\\s+id=\"([^\"]+)\">([^<]+)</h\\1>");
     private static final Pattern HEADING_PATTERN = Pattern.compile("<h([1-6])([^>]*)>(.*?)</h\\1>", Pattern.DOTALL);
     private static final Pattern ID_PATTERN = Pattern.compile("id=\"([^\"]+)\"");
-    /** img src：允许 base64(data:image/*)、http(s)、站内相对路径；其余丢弃（防止 javascript:/data:text 等）。 */
+    private static final Pattern TAG_PATTERN = Pattern.compile("<[^>]+>");
+    /** 带 scheme 的 URL 前缀（http:、javascript:、data: …），用于判断 img src 是否为外链协议。 */
+    private static final Pattern SCHEME_PATTERN = Pattern.compile("^[a-zA-Z][a-zA-Z0-9+.-]*:");
+    /**
+     * img src：允许 base64(data:image/*)、http(s)、相对路径（包含 / 开头的站内路径）；
+     * 其余带 scheme 的写法（javascript: / data:text/html / vbscript: 等）一律丢弃。
+     */
     private static final AttributePolicy IMG_SRC_POLICY = (el, attr, val) -> {
         String v = val == null ? "" : val.trim();
-        if (v.toLowerCase().startsWith("data:image/")) return v;
-        if (v.startsWith("http://") || v.startsWith("https://") || v.startsWith("mailto:")) return v;
-        if (v.startsWith("/")) return v;
-        return null;
+        String lower = v.toLowerCase();
+        if (lower.startsWith("data:image/")) return v;
+        if (lower.startsWith("http://") || lower.startsWith("https://") || lower.startsWith("mailto:")) return v;
+        // 无 scheme（相对路径 / 以 / 或 ./ 开头）直接放行
+        return SCHEME_PATTERN.matcher(lower).find() ? null : v;
     };
     /** a href：拒绝 data: URL，防止 data:text/html 等 XSS。 */
     private static final AttributePolicy HREF_POLICY = (el, attr, val) ->
@@ -43,16 +49,33 @@ public class MarkdownService {
         this.policy = new HtmlPolicyBuilder()
                 .allowElements("h1", "h2", "h3", "h4", "h5", "h6", "p", "pre", "code",
                         "table", "thead", "tbody", "tr", "th", "td", "img", "a",
-                        "ul", "ol", "li", "blockquote", "strong", "em", "br", "hr")
+                        "ul", "ol", "li", "blockquote", "strong", "em", "del", "br", "hr")
                 .allowAttributes("id").onElements("h1", "h2", "h3", "h4", "h5", "h6")
-                .allowAttributes("class").matching(Pattern.compile("(language-[\\w-]+|hljs)")).onElements("code")
+                // c++ / c# / objective-c 这类语言名里带 +、#、. ，原来的 [\w-]+ 会把类名整段丢掉
+                .allowAttributes("class").matching(Pattern.compile("(language-[A-Za-z0-9_+#.-]+|hljs)")).onElements("code")
                 .allowUrlProtocols("http", "https", "mailto", "data")
                 .allowAttributes("href").matching(HREF_POLICY).onElements("a")
+                .allowAttributes("title").onElements("a", "img")
                 .allowAttributes("src").matching(IMG_SRC_POLICY).onElements("img")
                 .allowAttributes("alt").onElements("img")
                 .allowElements("input")
                 .allowAttributes("type", "checked", "disabled").onElements("input")
                 .toFactory();
+    }
+
+    /**
+     * 渲染预览用 HTML（与文章正文同一套解析 + 白名单）。
+     *
+     * <p>与 {@link ContentRenderService} 的区别只在于<b>不做图片搬运</b>：
+     * 正文入库前会把图片下载压缩后换成 MinIO 地址，而预览只用原文渲染，
+     * 图片仍是原地址（base64 / 外链 / 相对路径），排版与正文完全一致。
+     */
+    public VOs.MarkdownPreviewVO preview(String markdown) {
+        String html = render(markdown);
+        return VOs.MarkdownPreviewVO.builder()
+                .contentHtml(html)
+                .toc(extractToc(html))
+                .build();
     }
 
     public String render(String markdown) {
@@ -83,7 +106,9 @@ public class MarkdownService {
                 id = idm.group(1);
             }
             if (id == null) {
-                id = slugify(content.replaceAll("<[^>]+>", ""));
+                // 先去掉行内标签、再把 HTML 实体还原成纯文本再取 slug，
+                // 这样标题里的 & 之类字符在前端预览（按 DOM 文本取 slug）也能得到同一个 id
+                id = slugify(HtmlUtils.htmlUnescape(content.replaceAll("<[^>]+>", "")));
                 if (id.isEmpty()) {
                     id = "sec-" + (++seq);
                 }
@@ -113,9 +138,17 @@ public class MarkdownService {
         if (html == null) {
             return toc;
         }
-        Matcher m = H_PATTERN.matcher(html);
+        // 标题里可能带行内标签（**加粗**、`行内代码`、链接、图片），
+        // 早期用 ([^<]+) 匹配文本会让这类标题整条从目录里消失，这里改成提取后再去标签。
+        Matcher m = HEADING_PATTERN.matcher(html);
         while (m.find()) {
-            toc.add(new VOs.TocItemVO(m.group(2), HtmlUtils.htmlUnescape(m.group(3)), Integer.valueOf(m.group(1))));
+            Matcher idm = ID_PATTERN.matcher(m.group(2));
+            if (!idm.find()) {
+                // 没有锚点的标题（历史数据里手写的裸 <h2>）不进目录，避免点了没反应
+                continue;
+            }
+            String text = HtmlUtils.htmlUnescape(TAG_PATTERN.matcher(m.group(3)).replaceAll("")).trim();
+            toc.add(new VOs.TocItemVO(idm.group(1), text, Integer.valueOf(m.group(1))));
         }
         return toc;
     }

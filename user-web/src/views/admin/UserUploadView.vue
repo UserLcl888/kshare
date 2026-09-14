@@ -109,7 +109,12 @@
 
         <el-tabs v-model="contentTab">
           <el-tab-pane label="预览效果" name="preview">
-            <div ref="detailPreview" class="article-body detail-md" v-html="contentDetail.contentHtml"></div>
+            <div class="preview-layout">
+              <div ref="detailRoot" class="preview-main">
+                <div ref="detailPreview" class="article-body detail-md" v-html="detailHtml"></div>
+              </div>
+              <TocPanel :toc="detailToc" :scroll-root="detailRoot" />
+            </div>
           </el-tab-pane>
           <el-tab-pane label="作者编辑（原文）" name="raw">
             <pre class="raw-md">{{ contentDetail.contentMd }}</pre>
@@ -181,9 +186,10 @@ import {
   getAdminUploadsApi,
   replyAdminUploadApi
 } from '@/api/upload'
-import { enhanceCodeBlocks, highlightCodeBlocks, renderDiagrams } from '@/utils/markdown'
+import { collectToc, enhanceCodeBlocks, highlightCodeBlocks, renderDiagrams, renderMarkdown } from '@/utils/markdown'
+import TocPanel from '@/components/article/TocPanel.vue'
 import { formatDateTime } from '@/utils/format'
-import type { UserUploadDetail, UserUploadItem } from '@/types'
+import type { TocItem, UserUploadDetail, UserUploadItem } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -311,6 +317,17 @@ const contentVisible = ref(false)
 const contentDetail = ref<UserUploadDetail | null>(null)
 const contentTab = ref('preview')
 const detailPreview = ref<HTMLElement | null>(null)
+const detailRoot = ref<HTMLElement | null>(null)
+const detailToc = ref<TocItem[]>([])
+
+/**
+ * 预览正文：处理完成的用服务端 HTML；
+ * 处理中（processStatus=0）或处理失败时 contentHtml 为空，退回本地渲染原文，避免预览空白。
+ */
+const detailHtml = computed(() => {
+  if (!contentDetail.value) return ''
+  return contentDetail.value.contentHtml || renderMarkdown(contentDetail.value.contentMd || '')
+})
 
 async function viewContent(id: number) {
   contentDetail.value = await getAdminUploadDetailApi(id)
@@ -320,6 +337,7 @@ async function viewContent(id: number) {
   highlightCodeBlocks(detailPreview.value)
   await renderDiagrams(detailPreview.value)
   enhanceCodeBlocks(detailPreview.value)
+  detailToc.value = collectToc(detailPreview.value)
 }
 
 // 快速回复：内容 + 历史对话 + 回复框
@@ -495,6 +513,20 @@ onBeforeUnmount(() => {
   border: 1px solid var(--app-border);
   border-radius: 10px;
   padding: 16px 20px;
+}
+
+/* 预览：正文 + 右侧目录 */
+.preview-layout {
+  display: flex;
+  align-items: stretch;
+  gap: 16px;
+}
+
+.preview-main {
+  flex: 1;
+  min-width: 0;
+  max-height: 58vh;
+  overflow-y: auto;
 }
 
 .raw-md {

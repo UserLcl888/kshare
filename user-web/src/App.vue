@@ -40,7 +40,9 @@
   right: 0;
   bottom: 0;
   left: 0;
-  background: url('/auth-bg.png') center / cover no-repeat;
+  /* 背景插画与 favicon / 作者头像共用同一张图（public/logo.png）。
+     历史上有 logo.png 与 auth-bg.png 两份内容完全相同的 2.1MB 大图，已合并为一份。 */
+  background: url('/logo.png') center / cover no-repeat;
   opacity: 0.16;
   filter: brightness(1.25) contrast(1.05) saturate(1.05);
 }

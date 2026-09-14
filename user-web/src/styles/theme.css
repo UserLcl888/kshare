@@ -586,6 +586,16 @@ a {
   font-family: "JetBrains Mono", Consolas, "Courier New", monospace;
 }
 
+/*
+ * 代码块基础文字色：highlight.js 主题默认 #abb2bf 在深色底上偏暗，
+ * 未上色（无 language / 未走高亮）的代码块看着灰蒙蒙。这里提亮基色，
+ * 已高亮的 token 颜色仍然覆盖在上面，不受影响。
+ */
+.article-body pre code,
+.article-body pre code.hljs {
+  color: #e8ecf3;
+}
+
 /* 代码块：右上角“一键复制”按钮（正文渲染时由 utils/markdown.ts 注入） */
 /* 按钮配色随主题变化：amber=金橙、black=冷蓝、white=浅金（代码块底色始终为深色，保证可读） */
 :root {
@@ -707,4 +717,19 @@ html[data-theme='white'] {
 
 .article-body th {
   background: var(--app-accent-soft);
+}
+
+/* 删除线：flexmark（StrikethroughExtension）与预览用的 marked 都输出 <del>，统一样式 */
+.article-body del,
+.article-body s {
+  color: var(--app-text-secondary);
+  text-decoration: line-through;
+}
+
+/* 任务列表：服务端渲染的是裸 <input type="checkbox" disabled>，这里统一外观 */
+.article-body li > input[type='checkbox'] {
+  margin: 0 6px 0 0;
+  vertical-align: middle;
+  accent-color: var(--app-accent);
+  pointer-events: none;
 }

@@ -6,6 +6,7 @@ import com.interview.common.Result;
 import com.interview.dto.Requests;
 import com.interview.dto.VOs;
 import com.interview.service.ArticleService;
+import com.interview.service.MarkdownService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -27,6 +28,7 @@ import java.util.List;
 public class AdminArticleController {
 
     private final ArticleService articleService;
+    private final MarkdownService markdownService;
 
     @GetMapping
     public Result<PageResult<VOs.ArticleListItemVO>> list(
@@ -41,6 +43,15 @@ public class AdminArticleController {
     @PostMapping
     public Result<VOs.ArticleVO> create(@Valid @RequestBody Requests.ArticleSaveDTO dto) {
         return Result.ok(articleService.create(dto));
+    }
+
+    /**
+     * 正文预览：用与正文完全相同的解析 + 消毒规则渲染，并返回目录。
+     * 前端预览弹窗据此渲染，保证「预览 = 发布后的正文」。
+     */
+    @PostMapping("/preview")
+    public Result<VOs.MarkdownPreviewVO> preview(@Valid @RequestBody Requests.MarkdownPreviewDTO dto) {
+        return Result.ok(markdownService.preview(dto.getContentMd()));
     }
 
     @PutMapping("/{id}")

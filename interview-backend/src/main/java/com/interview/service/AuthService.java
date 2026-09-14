@@ -23,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.Duration;
+import java.util.List;
 import java.util.Set;
 
 @Service
@@ -34,6 +35,28 @@ public class AuthService {
     private final StringRedisTemplate redis;
     private final EmailCodeService emailCodeService;
     private final MarkdownImageService markdownImageService;
+
+    /** 登录失败冷却档位：累计失败次数 -> 冷却时长（分钟）。 */
+    private static final int[] LOGIN_FAIL_TIERS = {5, 7, 9, 11};
+    private static final int[] LOGIN_LOCK_MINUTES = {5, 10, 30, 60};
+    /** 失败次数统计窗口：24 小时（相当于"一天内累计"）。 */
+    private static final Duration LOGIN_FAIL_WINDOW = Duration.ofHours(24);
+
+    /** 按累计失败次数返回应冷却的分钟数，0 表示不冷却。 */
+    private long lockMinutesFor(long attempts) {
+        long minutes = 0;
+        for (int i = 0; i < LOGIN_FAIL_TIERS.length; i++) {
+            if (attempts >= LOGIN_FAIL_TIERS[i]) {
+                minutes = LOGIN_LOCK_MINUTES[i];
+            }
+        }
+        return minutes;
+    }
+
+    /** 冷却时长文案：不足 1 分钟显示秒。 */
+    private String humanizeLock(long minutes) {
+        return minutes >= 1 ? minutes + " 分钟" : "一会儿";
+    }
 
     /** 头像仅支持 png/jpg */
     private static final Set<String> AVATAR_EXT = Set.of("png", "jpg", "jpeg");
@@ -81,18 +104,30 @@ public class AuthService {
         if (user == null) {
             throw new BizException(ErrorCode.PARAM_ERROR, "账号不存在");
         }
+        // 冷却中：即使密码正确也先拒绝（剩余时间取 Redis TTL）
+        String lockKey = RedisKeys.loginLock(account);
+        Long lockTtl = redis.getExpire(lockKey, java.util.concurrent.TimeUnit.SECONDS);
+        if (lockTtl != null && lockTtl > 0) {
+            long minutes = (lockTtl + 59) / 60;
+            throw new BizException(ErrorCode.PARAM_ERROR,
+                    "密码错误次数过多，请 " + humanizeLock(minutes) + "后再试，也可通过“忘记密码”重置");
+        }
         if (!passwordEncoder.matches(dto.getPassword(), user.getPasswordHash())) {
-            String rateKey = RedisKeys.loginRate(account);
-            Long attempts = redis.opsForValue().increment(rateKey);
+            Long attempts = redis.opsForValue().increment(RedisKeys.loginFail(account));
             if (attempts != null && attempts == 1) {
-                redis.expire(rateKey, Duration.ofMinutes(1));
+                // 失败次数 24 小时自然过期，相当于"一天内累计"
+                redis.expire(RedisKeys.loginFail(account), LOGIN_FAIL_WINDOW);
             }
-            if (attempts != null && attempts > 5) {
-                throw new BizException(ErrorCode.PARAM_ERROR, "尝试次数过多，请 1 分钟后再试");
+            long lockMinutes = lockMinutesFor(attempts == null ? 0 : attempts);
+            if (lockMinutes > 0) {
+                redis.opsForValue().set(RedisKeys.loginLock(account), "1", Duration.ofMinutes(lockMinutes));
+                throw new BizException(ErrorCode.PARAM_ERROR,
+                        "密码错误次数过多，请 " + humanizeLock(lockMinutes) + "后再试，也可通过“忘记密码”重置");
             }
             throw new BizException(ErrorCode.PARAM_ERROR, "密码错误");
         }
-        redis.delete(RedisKeys.loginRate(account));
+        // 登录成功：清空失败计数与冷却
+        redis.delete(List.of(RedisKeys.loginFail(account), RedisKeys.loginLock(account)));
         if (user.getStatus() == null || user.getStatus() != UserStatus.NORMAL.getCode()) {
             throw new BizException(ErrorCode.FORBIDDEN, "账号已被禁用");
         }

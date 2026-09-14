@@ -118,6 +118,16 @@ public class VOs {
         }
     }
 
+    /** Markdown 预览结果：与正文同源的 HTML + 目录（供后台/投稿预览使用）。 */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class MarkdownPreviewVO {
+        private String contentHtml;
+        private List<TocItemVO> toc;
+    }
+
     @Data
     @Builder
     @NoArgsConstructor
@@ -207,6 +217,8 @@ public class VOs {
         private String groupName;
         private String fileName;
         private Integer status;
+        /** 处理状态：0=处理中 1=已完成 2=处理失败 */
+        private Integer processStatus;
         private String adminReply;
         private LocalDateTime repliedAt;
         private LocalDateTime createdAt;

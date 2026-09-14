@@ -219,7 +219,8 @@ const features = [
 .auth-bg {
   position: absolute;
   inset: 0;
-  background: url('/auth-bg.png') center / cover no-repeat;
+  /* 与 favicon / 作者头像共用 public/logo.png（原来是两份相同大图，已合并） */
+  background: url('/logo.png') center / cover no-repeat;
   opacity: 0.88;
   filter: brightness(1.34) contrast(1.07) saturate(1.08);
   -webkit-mask-image: linear-gradient(to right, #000 0%, #000 58%, rgba(0, 0, 0, 0.65) 74%, transparent 92%);

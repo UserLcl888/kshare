@@ -125,8 +125,25 @@
           </el-form>
         </div>
 
-        <el-dialog v-model="previewVisible" title="正文预览" width="960px" top="6vh" class="preview-dialog" append-to-body @open="onPreviewOpen">
-          <div ref="previewBody" class="article-body preview-body" v-html="previewHtml"></div>
+        <el-dialog
+          v-model="previewVisible"
+          title="正文预览"
+          width="min(1180px, 94vw)"
+          top="6vh"
+          class="preview-dialog"
+          append-to-body
+          @open="onPreviewOpen"
+        >
+          <div class="preview-layout">
+            <div ref="previewRoot" class="preview-main">
+              <div v-if="previewLoading" class="preview-loading">渲染中…</div>
+              <div v-else ref="previewBody" class="article-body preview-body" v-html="previewHtml"></div>
+            </div>
+            <TocPanel :toc="previewToc" :scroll-root="previewRoot" />
+          </div>
+          <div class="preview-tip">
+            预览与发布后的正文使用同一套渲染规则（同样支持代码高亮、Mermaid 流程图、代码复制按钮）；目录可点击跳转。
+          </div>
         </el-dialog>
 
         <CategoryManageDialog v-model="categoryManageVisible" />
@@ -165,16 +182,23 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, type UploadFile, type UploadUserFile } from 'element-plus'
 import { Plus, UploadFilled } from '@element-plus/icons-vue'
 import { unsavedState } from '@/utils/unsaved'
-import { enhanceCodeBlocks, highlightCodeBlocks, renderDiagrams, renderMarkdown } from '@/utils/markdown'
+import {
+  collectToc,
+  enhanceCodeBlocks,
+  highlightCodeBlocks,
+  renderDiagrams,
+  renderMarkdownWithToc
+} from '@/utils/markdown'
+import TocPanel from '@/components/article/TocPanel.vue'
 import CategoryManageDialog from '@/components/admin/CategoryManageDialog.vue'
-import { getArticleDetail, createArticleApi, updateArticleApi } from '@/api/article'
+import { getArticleDetail, createArticleApi, updateArticleApi, previewArticleMdApi } from '@/api/article'
 import { uploadCoverApi } from '@/api/admin'
 import { getLearnCategoriesApi } from '@/api/article'
 import { useCategoryStore } from '@/stores/category'
 import { getCategoryPath } from '@/utils/category'
 import { dataUrlToFile, readFileAsDataUrl, readFileAsText } from '@/utils/file'
 import { useDraftStorage } from '@/composables/useDraft'
-import type { LearnCategory } from '@/types'
+import type { LearnCategory, TocItem } from '@/types'
 
 const router = useRouter()
 const route = useRoute()
@@ -381,14 +405,47 @@ watch(isDirty, (v) => {
   unsavedState.dirty = v
 }, { immediate: true })
 
-const previewHtml = computed(() => renderMarkdown(resolvePasteImages(form.content || '')))
+/**
+ * 预览：优先交给服务端渲染（MarkdownService，和入库正文同一套解析 + 消毒），
+ * 接口异常或内容过大时退回本地渲染（utils/markdown.ts 的规则已与后端对齐）。
+ * 两者都会做代码高亮、Mermaid 流程图、代码复制按钮，并生成右侧目录。
+ */
+const previewHtml = ref('')
+const previewToc = ref<TocItem[]>([])
+const previewLoading = ref(false)
+const previewRoot = ref<HTMLElement | null>(null)
+/** 走服务端的正文长度上限：超过就本地渲染，避免一次提交几十 MB */
+const PREVIEW_SERVER_LIMIT = 2_000_000
+
+async function renderPreview() {
+  const md = resolvePasteImages(form.content || '')
+  previewLoading.value = true
+  previewHtml.value = ''
+  previewToc.value = []
+  try {
+    if (md.length > PREVIEW_SERVER_LIMIT) throw new Error('内容过长，改用本地渲染')
+    const res = await previewArticleMdApi(md)
+    previewHtml.value = res.contentHtml || ''
+    previewToc.value = res.toc || []
+  } catch {
+    // 静默兜底：服务端不可用时用本地渲染，效果规则与正文保持一致
+    const local = renderMarkdownWithToc(md)
+    previewHtml.value = local.html
+    previewToc.value = local.toc
+  } finally {
+    previewLoading.value = false
+  }
+  await nextTick()
+  if (!previewBody.value) return
+  highlightCodeBlocks(previewBody.value)
+  await renderDiagrams(previewBody.value)
+  enhanceCodeBlocks(previewBody.value)
+  // 目录兜底：直接读渲染结果里真实的 heading id，保证点了就能跳到对应位置
+  if (!previewToc.value.length) previewToc.value = collectToc(previewBody.value)
+}
 
 function onPreviewOpen() {
-  nextTick(async () => {
-    highlightCodeBlocks(previewBody.value)
-    await renderDiagrams(previewBody.value)
-    enhanceCodeBlocks(previewBody.value)
-  })
+  renderPreview()
 }
 
 function onMdImportOpen() {
@@ -757,14 +814,40 @@ async function submit(after: 'list' | 'view' = 'list') {
   padding: 4px 16px 16px;
 }
 
+/* 预览：正文 + 右侧目录（与正文页同一套三栏观感） */
+.preview-layout {
+  display: flex;
+  align-items: stretch;
+  gap: 16px;
+}
+
+.preview-main {
+  flex: 1;
+  min-width: 0;
+  max-height: 68vh;
+  overflow-y: auto;
+}
+
 .preview-body {
   background: var(--app-card);
   border: 1px solid var(--app-border);
   border-radius: 10px;
   padding: 28px 36px;
   width: 100%;
-  max-width: 920px;
-  margin: 0 auto;
+}
+
+.preview-loading {
+  padding: 90px 0;
+  text-align: center;
+  font-size: 14px;
+  color: var(--app-text-secondary);
+}
+
+.preview-tip {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--app-text-secondary);
 }
 
 .upload-hint {

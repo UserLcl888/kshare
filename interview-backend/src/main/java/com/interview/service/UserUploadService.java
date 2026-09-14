@@ -21,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -35,6 +36,24 @@ public class UserUploadService {
     private final AdminLogService adminLogService;
     private final NotificationService notificationService;
     private final ContentRenderService contentRenderService;
+    private final UserUploadProcessService userUploadProcessService;
+    private final org.springframework.data.redis.core.StringRedisTemplate redis;
+
+    /** 每个账号每天最多提交的篇数。 */
+    private static final int UPLOAD_PER_DAY = 3;
+
+    /** 今日投稿额度：limit / used / remaining，供前端做"今天还可以提交 N 篇"提示。 */
+    public Map<String, Integer> dailyQuota(Long userId) {
+        int used = 0;
+        try {
+            String raw = redis.opsForValue().get(com.interview.common.RedisKeys.userUploadDay(userId));
+            used = raw == null ? 0 : Integer.parseInt(raw);
+        } catch (Exception ignored) {
+            // Redis 异常时不拦截用户
+        }
+        int remain = Math.max(0, UPLOAD_PER_DAY - used);
+        return Map.of("limit", UPLOAD_PER_DAY, "used", used, "remaining", remain);
+    }
 
     /**
      * 普通用户上传 Markdown 内容：读取文件原文，复用 MarkdownService 渲染 HTML 后入库。
@@ -55,8 +74,18 @@ public class UserUploadService {
         if (!lower.endsWith(".md") && !lower.endsWith(".markdown")) {
             throw new BizException(ErrorCode.PARAM_ERROR, "仅支持 .md 或 .markdown 文件");
         }
-        if (file.getSize() > 20L * 1024 * 1024) {
-            throw new BizException(ErrorCode.PARAM_ERROR, "文档不能超过 20MB");
+        // 单篇 Markdown 上限 3MB：纯文字通常只有几十~几百 KB，3MB 足够放内嵌 base64 图片
+        if (file.getSize() > 3L * 1024 * 1024) {
+            throw new BizException(ErrorCode.PARAM_ERROR, "文件超过大小限制，请压缩或去掉内嵌大图后重试");
+        }
+        // 每个账号每天最多提交 3 篇（放在格式/大小校验之后，避免校验失败也占额度）
+        String dayKey = com.interview.common.RedisKeys.userUploadDay(userId);
+        Long times = redis.opsForValue().increment(dayKey);
+        if (times != null && times == 1) {
+            redis.expire(dayKey, Duration.ofDays(1));
+        }
+        if (times != null && times > UPLOAD_PER_DAY) {
+            throw new BizException(ErrorCode.PARAM_ERROR, "今天提交次数已达上限（每天 3 篇），请明天再试");
         }
         String contentMd;
         try {
@@ -74,15 +103,18 @@ public class UserUploadService {
         upload.setCategoryName(dto.getCategoryName().trim());
         upload.setGroupName(dto.getGroupName() == null ? "" : dto.getGroupName().trim());
         upload.setFileName(fileName);
-        // md 里的图片自动上传 MinIO 并重写 URL（未配置 MinIO 时原样返回），再渲染为消毒后的 HTML
-        ContentRenderService.RenderedContent rc = contentRenderService.render(contentMd, "upload");
-        upload.setContentMd(rc.contentMd());
-        upload.setContentHtml(rc.contentHtml());
+        // 先落库（处理中）并立刻返回：图片搬运 + 正文渲染交给线程池异步做
+        // （图片放 user-upload/ 目录，和后台文章图 article/ 分开）
+        upload.setContentMd(contentMd);
+        upload.setContentHtml("");
+        upload.setProcessStatus(0);
         upload.setStatus(0);
         upload.setAdminReply("");
         userUploadMapper.insert(upload);
         User user = userMapper.selectById(userId);
         notificationService.notifyAdminNewUpload(upload, user);
+        // 异步：下载/压缩/上传正文图片 + 渲染 HTML，完成后把 process_status 改成 1（失败为 2）
+        userUploadProcessService.process(upload.getId(), contentMd);
         return toListItem(upload, null, null, null);
     }
 
@@ -222,6 +254,7 @@ public class UserUploadService {
                 .groupName(u.getGroupName())
                 .fileName(u.getFileName())
                 .status(u.getStatus())
+                .processStatus(u.getProcessStatus())
                 .adminReply(u.getAdminReply())
                 .repliedAt(u.getRepliedAt())
                 .createdAt(u.getCreatedAt())

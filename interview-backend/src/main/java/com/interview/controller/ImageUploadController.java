@@ -25,7 +25,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class ImageUploadController {
 
-    private static final Set<String> ALLOWED_DIR = Set.of("article", "upload", "image", "cover", "banner");
+    private static final Set<String> ALLOWED_DIR = Set.of("article", "user-upload", "image", "cover", "banner");
 
     private final MarkdownImageService markdownImageService;
 

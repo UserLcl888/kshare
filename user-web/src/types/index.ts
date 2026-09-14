@@ -32,6 +32,12 @@ export interface TocItem {
   level: number
 }
 
+/** Markdown 预览结果：服务端按正文同一套规则渲染的 HTML + 目录 */
+export interface MarkdownPreview {
+  contentHtml: string
+  toc: TocItem[]
+}
+
 export interface ArticleDetail {
   id: number
   slug: string
@@ -127,6 +133,8 @@ export interface UserUploadItem {
   groupName: string
   fileName: string
   status: number
+  /** 处理状态：0=处理中 1=已完成 2=处理失败（后端异步处理图片与正文） */
+  processStatus?: number
   adminReply: string
   repliedAt: string | null
   createdAt: string

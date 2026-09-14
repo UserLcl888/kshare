@@ -1,20 +1,114 @@
 import hljs from 'highlight.js'
-import { marked } from 'marked'
+import { Marked } from 'marked'
 import DOMPurify from 'dompurify'
 import type { Router } from 'vue-router'
+import type { TocItem } from '@/types'
+
+/**
+ * 本地 Markdown 渲染：正文一律以服务端 contentHtml 为准（MarkdownService 渲染 + 消毒），
+ * 这里只用于「预览接口不可用时的兜底」。
+ *
+ * 规则刻意与后端 flexmark + OWASP 白名单保持一致，避免"预览一个样、发布后另一个样"：
+ * - gfm:true —— 表格 / ~~删除线~~ / - [ ] 任务列表都渲染（后端开了对应扩展）；
+ * - 关掉 GFM 的裸 URL 自动链接 —— 后端没开 autolink 扩展，裸网址就该是纯文本；
+ * - 标题补 id —— 与后端 addHeadingIds 同一套 slug 规则，目录锚点才能对上；
+ * - 消毒白名单与后端 MarkdownService 的 allowElements / allowAttributes 一一对应。
+ */
+const mdParser = new Marked({ gfm: true, breaks: false })
+// 覆盖 GFM 的裸 URL 分词器：https://x.com 保持纯文本（与正文一致），
+// <https://x.com> 这种 CommonMark 自动链接仍然有效。
+mdParser.use({ tokenizer: { url: () => undefined } })
+
+/** 与后端 MarkdownService 的 allowElements 对齐。 */
+const ALLOWED_TAGS = [
+  'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'pre', 'code',
+  'table', 'thead', 'tbody', 'tr', 'th', 'td', 'img', 'a',
+  'ul', 'ol', 'li', 'blockquote', 'strong', 'em', 'del', 'br', 'hr', 'input'
+]
+
+/** 与后端 allowAttributes 对齐：每个标签只保留这些属性，其余一律删掉。 */
+const ALLOWED_ATTRS: Record<string, string[]> = {
+  h1: ['id'], h2: ['id'], h3: ['id'], h4: ['id'], h5: ['id'], h6: ['id'],
+  code: ['class'],
+  a: ['href', 'title'],
+  img: ['src', 'alt', 'title'],
+  input: ['type', 'checked', 'disabled']
+}
+
+let sanitizeHookReady = false
+
+function ensureSanitizeHook(): void {
+  if (sanitizeHookReady) return
+  sanitizeHookReady = true
+  DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+    const tag = node.nodeName.toLowerCase()
+    const allowed = ALLOWED_ATTRS[tag] || []
+    for (const attr of Array.from(node.attributes)) {
+      if (!allowed.includes(attr.name)) node.removeAttribute(attr.name)
+    }
+  })
+}
+
+/** 与后端 MarkdownService.slugify 保持一致。 */
+function slugify(text: string): string {
+  const slug = text.trim().replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '')
+  return slug.length > 80 ? slug.slice(0, 80) : slug
+}
+
+/**
+ * 给渲染结果里的标题补 id（marked 不生成锚点），规则与后端 addHeadingIds 一致：
+ * 同名标题从第二个开始追加 -2、-3，右侧目录才能准确定位。
+ */
+function assignHeadingIds(html: string): { html: string; toc: TocItem[] } {
+  const doc = new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html')
+  const toc: TocItem[] = []
+  const used = new Map<string, number>()
+  doc.body.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach((el) => {
+    const level = Number(el.tagName.slice(1))
+    const text = (el.textContent || '').trim()
+    let id = slugify(text) || `sec-${toc.length + 1}`
+    const count = (used.get(id) || 0) + 1
+    used.set(id, count)
+    if (count > 1) id = `${id}-${count}`
+    el.setAttribute('id', id)
+    if (text) toc.push({ id, text, level })
+  })
+  return { html: doc.body.innerHTML, toc }
+}
+
+/** 渲染 Markdown 为「与正文同规则」的 HTML + 目录。 */
+export function renderMarkdownWithToc(md: string): { html: string; toc: TocItem[] } {
+  ensureSanitizeHook()
+  const raw = mdParser.parse(md || '') as string
+  const clean = DOMPurify.sanitize(raw, {
+    ALLOWED_TAGS,
+    ALLOWED_ATTR: ['id', 'class', 'href', 'title', 'src', 'alt', 'type', 'checked', 'disabled'],
+    // 允许 data:image URI：编辑器里粘贴/复制的 base64 图片，在保存前也能预览
+    ADD_DATA_URI_TAGS: ['img']
+  })
+  return assignHeadingIds(clean)
+}
 
 /** 渲染 Markdown 为消毒后的 HTML（题目、用户上传等多处复用）。 */
 export function renderMarkdown(md: string): string {
-  // gfm:false —— 只让符合 [文字](链接) 语法的生成 <a>。
-  // marked 默认 GFM 会把正文里裸写的 https://xxx（以及畸形链接里的 URL）自动转成链接，
-  // 甚至出现 %5D 之类的乱码；关掉 gfm 后只有真正的 md 链接才会高亮、可点，
-  // 裸 URL / 畸形写法一律保持纯文本。（正文主要用服务端 contentHtml，此逻辑用于前端回退/预览）
-  const html = marked.parse(md || '', { gfm: false }) as string
-  // 允许 data:image URI：编辑器里粘贴/复制的 base64 图片，在保存前也能预览和复制
-  return DOMPurify.sanitize(html, {
-    ADD_DATA_URI_TAGS: ['img'],
-    ADD_DATA_URI_ATTRS: ['src']
+  return renderMarkdownWithToc(md).html
+}
+
+/**
+ * 从已渲染的正文容器里收集目录（读 DOM 上真实的 heading id）。
+ * 预览弹窗用它兜底：不论 HTML 来自服务端还是本地渲染，目录都和画面完全对上。
+ */
+export function collectToc(container: HTMLElement | null): TocItem[] {
+  if (!container) return []
+  const toc: TocItem[] = []
+  container.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach((el) => {
+    const id = el.getAttribute('id')
+    if (!id) return
+    const text = (el.textContent || '').trim()
+    if (!text) return
+    toc.push({ id, text, level: Number(el.tagName.slice(1)) })
   })
+  return toc
 }
 
 /** 为已渲染的 HTML 容器内的代码块做高亮。 */
