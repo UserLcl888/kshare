@@ -20,7 +20,7 @@
       <!-- 主内容 -->
       <main class="author-main">
         <section class="author-hero">
-          <img src="/logo.png" alt="avatar" class="avatar" />
+          <img src="/logo.webp" alt="avatar" class="avatar" />
           <div class="tagline">JAVA &amp; AI</div>
           <h1 class="name">笨笨的派大星</h1>
           <p class="intro">全栈开发者，AI 爱好玩家，Vibcoding 初级用户</p>

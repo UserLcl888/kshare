@@ -40,11 +40,17 @@
   right: 0;
   bottom: 0;
   left: 0;
-  /* 背景插画与 favicon / 作者头像共用同一张图（public/logo.png）。
-     历史上有 logo.png 与 auth-bg.png 两份内容完全相同的 2.1MB 大图，已合并为一份。 */
-  background: url('/logo.png') center / cover no-repeat;
-  opacity: 0.16;
+  /* 背景插画与作者头像共用 public/logo.webp（WebP 68KB，原 PNG 2MB）。
+     opacity 先为 0，等 index.html 里的内联脚本在图片加载完成后给 html 加 .bg-ready 再淡入，
+     这样首屏不会被这张图挡住。 */
+  background: url('/logo.webp') center / cover no-repeat;
+  opacity: 0;
+  transition: opacity 0.5s ease;
   filter: brightness(1.25) contrast(1.05) saturate(1.05);
+}
+
+html.bg-ready .app-bg::after {
+  opacity: 0.16;
 }
 
 .app-view {

@@ -2,9 +2,24 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="/logo.png" />
+    <link rel="icon" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>知识分享平台</title>
+    <!-- 背景插画提前开始下载（68KB WebP），不阻塞首屏 -->
+    <link rel="preload" as="image" href="/logo.webp" />
+    <script>
+      // 页面先用渐变底直接渲染，背景图下载完成后给 html 加 .bg-ready 让它淡入，
+      // 避免首屏干等一张大图（也避免图片"突然跳出来"）
+      (function () {
+        var done = function () {
+          document.documentElement.classList.add('bg-ready')
+        }
+        var img = new Image()
+        img.onload = done
+        img.onerror = done
+        img.src = '/logo.webp'
+      })()
+    </script>
   </head>
   <body>
     <div id="app"></div>

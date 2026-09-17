@@ -219,13 +219,19 @@ const features = [
 .auth-bg {
   position: absolute;
   inset: 0;
-  /* 与 favicon / 作者头像共用 public/logo.png（原来是两份相同大图，已合并） */
-  background: url('/logo.png') center / cover no-repeat;
-  opacity: 0.88;
+  /* 与作者头像共用 public/logo.webp（WebP 68KB，原 PNG 2MB） */
+  background: url('/logo.webp') center / cover no-repeat;
+  /* 先不显示，图片加载完成（html.bg-ready）后淡入：页面结构与表单立即渲染，不等图 */
+  opacity: 0;
+  transition: opacity 0.5s ease;
   filter: brightness(1.34) contrast(1.07) saturate(1.08);
   -webkit-mask-image: linear-gradient(to right, #000 0%, #000 58%, rgba(0, 0, 0, 0.65) 74%, transparent 92%);
   mask-image: linear-gradient(to right, #000 0%, #000 58%, rgba(0, 0, 0, 0.65) 74%, transparent 92%);
   pointer-events: none;
+}
+
+html.bg-ready .auth-bg {
+  opacity: 0.88;
 }
 
 /* 压暗渐变，保证文字可读 */
