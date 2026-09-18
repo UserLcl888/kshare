@@ -2,7 +2,7 @@
  * 站点级配置。
  * MINIO_PUBLIC_BASE / MINIO_BUCKET：图片公开访问前缀与桶名，部署后按实际修改。
  */
-export const MINIO_PUBLIC_BASE = 'http://103.236.54.34:9000'
+export const MINIO_PUBLIC_BASE = 'https://img.kshare.cn'
 export const MINIO_BUCKET = 'interview-images'
 
 /** 拼 MinIO 对象访问地址，如 minioUrl('banner/java.png') */

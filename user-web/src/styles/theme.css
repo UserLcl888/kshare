@@ -616,6 +616,22 @@ html[data-theme='white'] {
   --code-copy-border: rgba(255, 208, 138, 0.55);
 }
 
+/*
+ * 页脚配色：备案号 / 知识分享 / GitHub 三项共用一个颜色，按主题分别取值
+ * 对比度（对页脚卡片底色）：amber 9:1、black 9:1、white 6.5:1，均过 WCAG AA
+ */
+:root {
+  --footer-color: #f5c063;   /* amber：亮金 */
+}
+
+html[data-theme='black'] {
+  --footer-color: #8cc2ff;   /* black：冷蓝 */
+}
+
+html[data-theme='white'] {
+  --footer-color: #8a5a05;   /* white：深金棕 */
+}
+
 .article-body .code-block {
   position: relative;
 }
