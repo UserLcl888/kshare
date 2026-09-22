@@ -23,6 +23,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -244,6 +245,60 @@ public class MarkdownImageService {
                 .contentType(contentType)
                 .headers(headers)
                 .build());
+    }
+
+    /**
+     * 上传站点附件（HTML 独立页 / 文档）。
+     * 与图片不同：不压缩、不派生素材、不按日期目录，只用调用方给的对象名原样存一份，
+     * 便于按 URL 精确删除。contentDisposition 非空时写上（Office/zip 用 attachment，
+     * 这样点下载不会离开当前页面，中文文件名也能正确还原）。
+     */
+    public String storeAsset(byte[] data, String objectName, String contentType, String contentDisposition) {
+        if (minioClient == null || !StringUtils.hasText(props.getPublicBaseUrl())) {
+            throw new BizException(ErrorCode.SERVER_ERROR, "文件存储未配置，请联系管理员");
+        }
+        if (data == null || data.length == 0) {
+            throw new BizException(ErrorCode.PARAM_ERROR, "文件不能为空");
+        }
+        try {
+            Map<String, String> headers = new HashMap<>();
+            headers.put("Content-Type", contentType);
+            headers.put("Cache-Control", CACHE_IMMUTABLE);
+            if (StringUtils.hasText(contentDisposition)) {
+                headers.put("Content-Disposition", contentDisposition);
+            }
+            minioClient.putObject(PutObjectArgs.builder()
+                    .bucket(props.getBucket())
+                    .object(objectName)
+                    .stream(new ByteArrayInputStream(data), data.length, -1)
+                    .contentType(contentType)
+                    .headers(headers)
+                    .build());
+        } catch (Exception e) {
+            log.error("上传附件失败 object={}", objectName, e);
+            throw new BizException(ErrorCode.SERVER_ERROR, "文件上传失败，请重试");
+        }
+        return publicUrl(objectName);
+    }
+
+    /**
+     * 按完整 URL 删除单个附件对象。
+     * 附件不派生其它尺寸，所以不走 {@link #removeObjectByUrl} 的多 key 清理，避免刷一堆无意义的告警。
+     */
+    public void removeAssetByUrl(String url) {
+        if (!StringUtils.hasText(url) || !isMinioUrl(url) || minioClient == null) {
+            return;
+        }
+        String object = url.substring((props.getPublicBaseUrl() + "/" + props.getBucket() + "/").length());
+        try {
+            minioClient.removeObject(RemoveObjectArgs.builder()
+                    .bucket(props.getBucket())
+                    .object(object)
+                    .build());
+            log.info("已移除 MinIO 附件: {}", object);
+        } catch (Exception e) {
+            log.warn("删除 MinIO 附件失败 object={}", object, e);
+        }
     }
 
     private String publicUrl(String object) {

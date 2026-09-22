@@ -9,5 +9,6 @@ public enum AdminLogTargetType {
     TAG,
     USER,
     UPLOAD,
-    NOTICE
+    NOTICE,
+    ASSET
 }

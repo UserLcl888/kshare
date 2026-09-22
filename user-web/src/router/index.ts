@@ -109,6 +109,12 @@ const router = createRouter({
       children: [{ path: '', name: 'admin-tags', component: () => import('@/views/admin/TagManageView.vue') }]
     },
     {
+      path: '/admin/assets',
+      component: () => import('@/components/layout/AdminLayout.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+      children: [{ path: '', name: 'admin-assets', component: () => import('@/views/admin/AssetManageView.vue') }]
+    },
+    {
       path: '/admin/learn-categories',
       component: () => import('@/components/layout/AdminLayout.vue'),
       meta: { requiresAuth: true, requiresAdmin: true },

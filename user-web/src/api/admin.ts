@@ -108,6 +108,47 @@ export async function uploadCoverApi(file: File): Promise<{ url: string; thumbUr
   })
 }
 
+/**
+ * 附件（HTML 页面 / 文档）：上传后拿到链接，复制到 Markdown 正文里当普通外链用。
+ * kind=html 收 .html/.htm（≤5MB，浏览器直接渲染）；kind=file 收 pdf/office/txt/csv/zip（≤50MB）。
+ * 仅管理员可用。
+ */
+export interface AssetItem {
+  id: number
+  /** html=HTML 页面 file=文档 */
+  kind: string
+  objectName: string
+  /** 对外访问地址，正文里引用的就是它 */
+  url: string
+  fileName: string
+  fileSize: number
+  createdAt: string
+}
+
+export async function uploadAssetApi(file: File, kind: 'html' | 'file'): Promise<AssetItem> {
+  const form = new FormData()
+  form.append('file', file)
+  return request.post('/admin/assets/upload', form, {
+    params: { kind },
+    headers: { 'Content-Type': 'multipart/form-data' },
+    // 文档最大 50MB，单独放宽超时
+    timeout: 180000
+  })
+}
+
+export async function getAssetsApi(params: {
+  keyword?: string
+  kind?: string
+  page?: number
+  size?: number
+}): Promise<PageResult<AssetItem>> {
+  return request.get('/admin/assets', { params })
+}
+
+export async function deleteAssetApi(id: number): Promise<void> {
+  return request.delete(`/admin/assets/${id}`)
+}
+
 // 用户管理
 export async function getAdminUsersApi(params: {
   keyword?: string

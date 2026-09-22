@@ -62,7 +62,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<Result<Void>> handleMaxUpload(MaxUploadSizeExceededException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Result.fail(ErrorCode.PARAM_ERROR.getCode(), "上传内容过大，单个文件不能超过 20MB"));
+                .body(Result.fail(ErrorCode.PARAM_ERROR.getCode(), "上传内容过大，请压缩后重试"));
     }
 
     @ExceptionHandler(NoResourceFoundException.class)

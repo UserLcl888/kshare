@@ -23,7 +23,9 @@ public enum AdminLogAction {
     UPLOAD_DELETE(AdminLogTargetType.UPLOAD),
     NOTICE_CREATE(AdminLogTargetType.NOTICE),
     NOTICE_UPDATE(AdminLogTargetType.NOTICE),
-    NOTICE_DELETE(AdminLogTargetType.NOTICE);
+    NOTICE_DELETE(AdminLogTargetType.NOTICE),
+    ASSET_UPLOAD(AdminLogTargetType.ASSET),
+    ASSET_DELETE(AdminLogTargetType.ASSET);
 
     private final AdminLogTargetType targetType;
 
